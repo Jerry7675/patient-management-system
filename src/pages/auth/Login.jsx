@@ -1,54 +1,63 @@
-// File: src/pages/auth/Login.jsx
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { validateEmail, validatePassword } from '../../utils/validators';
-import { ButtonSpinner } from '../../components/common/LoadingSpinner';
-import { USER_ROLES } from '../../utils/constants';
+import { Eye, EyeOff, Lock, Mail, User, Stethoscope, Settings, Shield, AlertCircle } from 'lucide-react';
 
-const Login = () => {
+const Login = ({ onNavigate, onLogin }) => {
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
+    rememberMe: false
   });
-  const [errors, setErrors] = useState({});
+  
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  
-  const { signin, error, clearError } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  
-  const from = location.state?.from?.pathname || '/dashboard';
+  const [errors, setErrors] = useState({});
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    // Clear specific field error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
-    
-    // Clear general error
-    if (error) {
-      clearError();
+  // Mock user data for demonstration
+  const mockUsers = {
+    'patient@demo.com': {
+      password: 'password123',
+      role: 'patient',
+      isVerified: true,
+      name: 'John Patient',
+      uid: 'patient-001'
+    },
+    'doctor@demo.com': {
+      password: 'password123',
+      role: 'doctor',
+      isVerified: true,
+      name: 'Dr. Sarah Wilson',
+      uid: 'doctor-001',
+      specialization: 'Cardiology'
+    },
+    'management@demo.com': {
+      password: 'password123',
+      role: 'management',
+      isVerified: true,
+      name: 'Mike Manager',
+      uid: 'management-001',
+      department: 'Medical Records'
+    },
+    'admin@demo.com': {
+      password: 'password123',
+      role: 'admin',
+      isVerified: true,
+      name: 'Admin User',
+      uid: 'admin-001'
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
     
-    const emailError = validateEmail(formData.email);
-    if (emailError) newErrors.email = emailError;
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email is invalid';
+    }
     
-    const passwordError = validatePassword(formData.password);
-    if (passwordError) newErrors.password = passwordError;
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -56,163 +65,302 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    clearError();
     
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
+    
+    setLoading(true);
+    setErrors({});
     
     try {
-      setLoading(true);
-      const result = await signin(formData.email, formData.password);
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Redirect based on user role
-      const { userData } = result;
-      switch (userData.role) {
-        case USER_ROLES.ADMIN:
-          navigate('/admin/dashboard');
-          break;
-        case USER_ROLES.DOCTOR:
-          navigate('/doctor/dashboard');
-          break;
-        case USER_ROLES.MANAGEMENT:
-          navigate('/management/dashboard');
-          break;
-        case USER_ROLES.PATIENT:
-          navigate('/patient/dashboard');
-          break;
-        default:
-          navigate('/dashboard');
+      // Check if user exists in mock data
+      const user = mockUsers[formData.email.toLowerCase()];
+      
+      if (!user) {
+        setErrors({ general: 'No account found with this email address.' });
+        return;
       }
+      
+      if (user.password !== formData.password) {
+        setErrors({ general: 'Invalid password. Please try again.' });
+        return;
+      }
+      
+      if (!user.isVerified) {
+        setErrors({ 
+          general: 'Your account is pending admin verification. Please wait for approval.' 
+        });
+        return;
+      }
+      
+      // Successful login
+      const loginData = {
+        user: {
+          uid: user.uid,
+          email: formData.email,
+          name: user.name,
+          role: user.role,
+          isVerified: user.isVerified,
+          specialization: user.specialization,
+          department: user.department
+        },
+        timestamp: new Date()
+      };
+      
+      // Store login data (in real app, this would be handled by Firebase Auth)
+      console.log('Login successful:', loginData);
+      
+      // Call the login callback if provided
+      if (onLogin) {
+        onLogin(loginData.user);
+      }
+      
+      // Navigate to appropriate dashboard based on role
+      const dashboardRoutes = {
+        patient: 'patient-dashboard',
+        doctor: 'doctor-dashboard',
+        management: 'management-dashboard',
+        admin: 'admin-dashboard'
+      };
+      
+      if (onNavigate && dashboardRoutes[user.role]) {
+        onNavigate(dashboardRoutes[user.role]);
+      }
+      
     } catch (error) {
       console.error('Login error:', error);
+      setErrors({ general: 'Login failed. Please try again.' });
     } finally {
       setLoading(false);
     }
   };
 
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+    
+    // Clear error for this field
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const getRoleIcon = (role) => {
+    switch (role) {
+      case 'patient': return User;
+      case 'doctor': return Stethoscope;
+      case 'management': return Settings;
+      case 'admin': return Shield;
+      default: return User;
+    }
+  };
+
+  const getRoleColor = (role) => {
+    switch (role) {
+      case 'patient': return 'text-blue-600';
+      case 'doctor': return 'text-green-600';
+      case 'management': return 'text-orange-600';
+      case 'admin': return 'text-red-600';
+      default: return 'text-gray-600';
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div>
-          <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-primary-100">
-            <svg className="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
+        {/* Header */}
+        <div className="text-center">
+          <div className="mx-auto h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
+            <Lock className="h-8 w-8 text-white" />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome Back
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Patient Management System
+          <p className="text-gray-600">
+            Sign in to your patient management account
           </p>
         </div>
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-4">
-              <div className="flex">
-                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <p className="ml-2 text-sm text-red-600">{error}</p>
-              </div>
+
+        {/* Demo Credentials Info */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-blue-800 mb-2">Demo Credentials:</h3>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {Object.entries(mockUsers).map(([email, user]) => {
+              const IconComponent = getRoleIcon(user.role);
+              return (
+                <div key={email} className="flex items-center space-x-1">
+                  <IconComponent className={`w-3 h-3 ${getRoleColor(user.role)}`} />
+                  <span className="text-gray-700">{email}</span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-xs text-blue-700 mt-2">Password for all: password123</p>
+        </div>
+
+        {/* Login Form */}
+        <div className="bg-white shadow-lg rounded-lg p-8">
+          {errors.general && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
+              <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+              <span className="text-red-700 text-sm">{errors.general}</span>
             </div>
           )}
 
-          <div className="space-y-4">
+          <div className="space-y-6">
+            {/* Email Field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
               </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={formData.email}
-                onChange={handleInputChange}
-                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm ${
-                  errors.email ? 'border-red-300' : 'border-gray-300'
-                }`}
-                placeholder="Enter your email"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    errors.email ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter your email"
+                />
+              </div>
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
               )}
             </div>
 
+            {/* Password Field */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Password
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={formData.password}
-                onChange={handleInputChange}
-                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm ${
-                  errors.password ? 'border-red-300' : 'border-gray-300'
-                }`}
-                placeholder="Enter your password"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    errors.password ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter your password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  )}
+                </button>
+              </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                <p className="text-red-500 text-sm mt-1">{errors.password}</p>
               )}
             </div>
-          </div>
 
-          <div className="flex items-center justify-between">
-            <Link
-              to="/auth/forgot-password"
-              className="text-sm text-primary-600 hover:text-primary-500"
-            >
-              Forgot your password?
-            </Link>
-          </div>
+            {/* Remember Me & Forgot Password */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="rememberMe"
+                  checked={formData.rememberMe}
+                  onChange={handleInputChange}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label className="ml-2 block text-sm text-gray-700">
+                  Remember me
+                </label>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigate && onNavigate('forgot-password')}
+                className="text-sm text-blue-600 hover:text-blue-500"
+              >
+                Forgot password?
+              </button>
+            </div>
 
-          <div>
+            {/* Submit Button */}
             <button
-              type="submit"
+              onClick={handleSubmit}
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white ${
+                loading
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+              } transition-colors`}
             >
               {loading ? (
-                <>
-                  <ButtonSpinner />
-                  <span className="ml-2">Signing in...</span>
-                </>
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Signing in...
+                </div>
               ) : (
-                'Sign in'
+                'Sign In'
               )}
             </button>
-          </div>
 
-          <div className="text-center">
-            <span className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link
-                to="/auth/register"
-                className="font-medium text-primary-600 hover:text-primary-500"
-              >
-                Sign up here
-              </Link>
-            </span>
+            {/* Registration Link */}
+            <div className="text-center">
+              <p className="text-sm text-gray-600">
+                Don't have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => onNavigate && onNavigate('register')}
+                  className="font-medium text-blue-600 hover:text-blue-500"
+                >
+                  Create account
+                </button>
+              </p>
+            </div>
           </div>
+        </div>
 
-          <div className="text-center">
-            <Link
-              to="/auth/management-login"
-              className="text-sm text-medical-600 hover:text-medical-500 font-medium"
-            >
-              Management Login
-            </Link>
+        {/* Role Information */}
+        <div className="bg-white rounded-lg p-6 shadow-lg">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">System Roles</h3>
+          <div className="space-y-3">
+            {[
+              { role: 'patient', desc: 'View medical records and request corrections' },
+              { role: 'doctor', desc: 'Verify records and manage patient diagnoses' },
+              { role: 'management', desc: 'Enter patient records and manage reports' },
+              { role: 'admin', desc: 'Verify accounts and system administration' }
+            ].map(({ role, desc }) => {
+              const IconComponent = getRoleIcon(role);
+              return (
+                <div key={role} className="flex items-center space-x-3">
+                  <div className="flex-shrink-0">
+                    <IconComponent className={`w-5 h-5 ${getRoleColor(role)}`} />
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-900 capitalize">{role}:</span>
+                    <span className="text-gray-600 ml-1">{desc}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
