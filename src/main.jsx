@@ -5,9 +5,9 @@ import App from './App.jsx'
 import './styles/index.css'
 
 // Import context providers
-import { AuthProvider } from './context/AuthContext.jsx'
-import { UserProvider } from './context/UserContext.jsx'
-import { NotificationProvider } from './context/NotificationContext.jsx'
+import { AuthProvider } from './contexts/AuthContext.jsx'
+import { UserProvider } from './contexts/UserContext.jsx'
+import { NotificationProvider } from './contexts/NotificationContext.jsx'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

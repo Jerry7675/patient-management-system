@@ -1,379 +1,258 @@
-/**
- * Validation utility functions for the Patient Management System
- * Handles form validation, input sanitization, and data verification
- */
+// src/utils/validators.js
+import { USER_ROLES } from './constants'
 
-/**
- * Validate email format
- * @param {string} email - Email to validate
- * @returns {boolean} - True if valid email format
- */
-export const isValidEmail = (email) => {
-  if (!email || typeof email !== 'string') return false;
+// Email validation
+export const validateEmail = (email) => {
+  if (!email) {
+    return { isValid: false, error: 'Email is required' }
+  }
   
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email.trim());
-};
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email)) {
+    return { isValid: false, error: 'Please enter a valid email address' }
+  }
+  
+  return { isValid: true, error: null }
+}
 
-/**
- * Validate password strength
- * @param {string} password - Password to validate
- * @returns {object} - Validation result with isValid boolean and errors array
- */
+// Password validation
 export const validatePassword = (password) => {
-  const errors = [];
-  
-  if (!password || typeof password !== 'string') {
-    return { isValid: false, errors: ['Password is required'] };
+  if (!password) {
+    return { isValid: false, error: 'Password is required' }
   }
   
-  if (password.length < 8) {
-    errors.push('Password must be at least 8 characters long');
+  if (password.length < 6) {
+    return { isValid: false, error: 'Password must be at least 6 characters long' }
   }
   
-  if (!/(?=.*[a-z])/.test(password)) {
-    errors.push('Password must contain at least one lowercase letter');
+  // Check for at least one uppercase letter, one lowercase letter, and one number
+  const hasUpperCase = /[A-Z]/.test(password)
+  const hasLowerCase = /[a-z]/.test(password)
+  const hasNumbers = /\d/.test(password)
+  
+  if (!hasUpperCase || !hasLowerCase || !hasNumbers) {
+    return { 
+      isValid: false, 
+      error: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' 
+    }
   }
   
-  if (!/(?=.*[A-Z])/.test(password)) {
-    errors.push('Password must contain at least one uppercase letter');
+  return { isValid: true, error: null }
+}
+
+// Confirm password validation
+export const validateConfirmPassword = (password, confirmPassword) => {
+  if (!confirmPassword) {
+    return { isValid: false, error: 'Please confirm your password' }
   }
   
-  if (!/(?=.*\d)/.test(password)) {
-    errors.push('Password must contain at least one number');
+  if (password !== confirmPassword) {
+    return { isValid: false, error: 'Passwords do not match' }
   }
   
-  if (!/(?=.*[@$!%*?&])/.test(password)) {
-    errors.push('Password must contain at least one special character (@$!%*?&)');
+  return { isValid: true, error: null }
+}
+
+// Full name validation
+export const validateFullName = (fullName) => {
+  if (!fullName) {
+    return { isValid: false, error: 'Full name is required' }
+  }
+  
+  if (fullName.trim().length < 2) {
+    return { isValid: false, error: 'Full name must be at least 2 characters long' }
+  }
+  
+  // Check for valid name characters (letters, spaces, hyphens, apostrophes)
+  const nameRegex = /^[a-zA-Z\s\-']+$/
+  if (!nameRegex.test(fullName)) {
+    return { isValid: false, error: 'Full name can only contain letters, spaces, hyphens, and apostrophes' }
+  }
+  
+  return { isValid: true, error: null }
+}
+
+// Phone number validation
+export const validatePhone = (phone) => {
+  if (!phone) {
+    return { isValid: false, error: 'Phone number is required' }
+  }
+  
+  // Remove all non-digits
+  const digitsOnly = phone.replace(/\D/g, '')
+  
+  if (digitsOnly.length < 10) {
+    return { isValid: false, error: 'Phone number must be at least 10 digits' }
+  }
+  
+  if (digitsOnly.length > 15) {
+    return { isValid: false, error: 'Phone number cannot exceed 15 digits' }
+  }
+  
+  return { isValid: true, error: null }
+}
+
+// OTP validation
+export const validateOTP = (otp) => {
+  if (!otp) {
+    return { isValid: false, error: 'OTP is required' }
+  }
+  
+  if (otp.length !== 6) {
+    return { isValid: false, error: 'OTP must be 6 digits long' }
+  }
+  
+  if (!/^\d{6}$/.test(otp)) {
+    return { isValid: false, error: 'OTP must contain only numbers' }
+  }
+  
+  return { isValid: true, error: null }
+}
+
+// Role validation
+export const validateRole = (role) => {
+  if (!role) {
+    return { isValid: false, error: 'Role is required' }
+  }
+  
+  const validRoles = Object.values(USER_ROLES)
+  if (!validRoles.includes(role)) {
+    return { isValid: false, error: 'Invalid role selected' }
+  }
+  
+  return { isValid: true, error: null }
+}
+
+// Date validation
+export const validateDate = (date, fieldName = 'Date') => {
+  if (!date) {
+    return { isValid: false, error: `${fieldName} is required` }
+  }
+  
+  const dateObj = new Date(date)
+  if (isNaN(dateObj.getTime())) {
+    return { isValid: false, error: `Please enter a valid ${fieldName.toLowerCase()}` }
+  }
+  
+  return { isValid: true, error: null }
+}
+
+// Medical record validation
+export const validateMedicalRecord = (record) => {
+  const errors = {}
+  
+  // Validate patient name
+  const nameValidation = validateFullName(record.patientName)
+  if (!nameValidation.isValid) {
+    errors.patientName = nameValidation.error
+  }
+  
+  // Validate doctor name
+  const doctorValidation = validateFullName(record.doctorName)
+  if (!doctorValidation.isValid) {
+    errors.doctorName = doctorValidation.error
+  }
+  
+  // Validate date
+  const dateValidation = validateDate(record.date, 'Date')
+  if (!dateValidation.isValid) {
+    errors.date = dateValidation.error
+  }
+  
+  // Validate diagnosed disease
+  if (!record.diagnosedDisease || record.diagnosedDisease.trim().length < 2) {
+    errors.diagnosedDisease = 'Diagnosed disease is required and must be at least 2 characters long'
+  }
+  
+  // Validate prescription
+  if (!record.prescription || record.prescription.trim().length < 5) {
+    errors.prescription = 'Prescription is required and must be at least 5 characters long'
+  }
+  
+  // Validate dosage
+  if (!record.dosage || record.dosage.trim().length < 3) {
+    errors.dosage = 'Dosage information is required'
+  }
+  
+  // Validate recommendations
+  if (!record.recommendations || record.recommendations.trim().length < 10) {
+    errors.recommendations = 'Recommendations are required and must be at least 10 characters long'
+  }
+  
+  // Validate case status
+  const validStatuses = ['improving', 'stable', 'deteriorating']
+  if (!record.caseStatus || !validStatuses.includes(record.caseStatus.toLowerCase())) {
+    errors.caseStatus = 'Please select a valid case status'
   }
   
   return {
-    isValid: errors.length === 0,
+    isValid: Object.keys(errors).length === 0,
     errors
-  };
-};
+  }
+}
 
-/**
- * Validate phone number (supports various formats)
- * @param {string} phone - Phone number to validate
- * @returns {boolean} - True if valid phone format
- */
-export const isValidPhone = (phone) => {
-  if (!phone || typeof phone !== 'string') return false;
+// Correction request validation
+export const validateCorrectionRequest = (request) => {
+  const errors = {}
   
-  // Remove all non-digit characters
-  const cleanPhone = phone.replace(/\D/g, '');
-  
-  // Check if it's 10 digits (standard format) or 11 digits (with country code)
-  return cleanPhone.length === 10 || cleanPhone.length === 11;
-};
-
-/**
- * Validate name (alphabets, spaces, hyphens only)
- * @param {string} name - Name to validate
- * @returns {boolean} - True if valid name format
- */
-export const isValidName = (name) => {
-  if (!name || typeof name !== 'string') return false;
-  
-  const nameRegex = /^[a-zA-Z\s\-']+$/;
-  const trimmedName = name.trim();
-  
-  return trimmedName.length >= 2 && nameRegex.test(trimmedName);
-};
-
-/**
- * Validate age (1-150 years)
- * @param {number|string} age - Age to validate
- * @returns {boolean} - True if valid age
- */
-export const isValidAge = (age) => {
-  const numAge = Number(age);
-  return !isNaN(numAge) && numAge >= 1 && numAge <= 150;
-};
-
-/**
- * Validate date of birth (not future, not too old)
- * @param {string|Date} dob - Date of birth to validate
- * @returns {boolean} - True if valid date of birth
- */
-export const isValidDateOfBirth = (dob) => {
-  if (!dob) return false;
-  
-  const birthDate = new Date(dob);
-  const today = new Date();
-  const maxAge = new Date();
-  maxAge.setFullYear(maxAge.getFullYear() - 150);
-  
-  return (
-    !isNaN(birthDate.getTime()) &&
-    birthDate <= today &&
-    birthDate >= maxAge
-  );
-};
-
-/**
- * Validate medical record ID format
- * @param {string} recordId - Record ID to validate
- * @returns {boolean} - True if valid record ID format
- */
-export const isValidRecordId = (recordId) => {
-  if (!recordId || typeof recordId !== 'string') return false;
-  
-  // Format: REC-YYYYMMDD-XXXX (REC-20240315-0001)
-  const recordIdRegex = /^REC-\d{8}-\d{4}$/;
-  return recordIdRegex.test(recordId);
-};
-
-/**
- * Validate patient ID format
- * @param {string} patientId - Patient ID to validate
- * @returns {boolean} - True if valid patient ID format
- */
-export const isValidPatientId = (patientId) => {
-  if (!patientId || typeof patientId !== 'string') return false;
-  
-  // Format: PAT-YYYYMMDD-XXXX (PAT-20240315-0001)
-  const patientIdRegex = /^PAT-\d{8}-\d{4}$/;
-  return patientIdRegex.test(patientId);
-};
-
-/**
- * Validate doctor license number
- * @param {string} licenseNumber - License number to validate
- * @returns {boolean} - True if valid license format
- */
-export const isValidLicenseNumber = (licenseNumber) => {
-  if (!licenseNumber || typeof licenseNumber !== 'string') return false;
-  
-  // Format: MED-XXXXX-YYYY (MED-12345-2024)
-  const licenseRegex = /^MED-\d{5}-\d{4}$/;
-  return licenseRegex.test(licenseNumber);
-};
-
-/**
- * Validate OTP format
- * @param {string} otp - OTP to validate
- * @returns {boolean} - True if valid OTP format
- */
-export const isValidOTP = (otp) => {
-  if (!otp || typeof otp !== 'string') return false;
-  
-  // 6-digit OTP
-  const otpRegex = /^\d{6}$/;
-  return otpRegex.test(otp);
-};
-
-/**
- * Validate file upload (image files)
- * @param {File} file - File to validate
- * @returns {object} - Validation result with isValid boolean and error message
- */
-export const validateImageFile = (file) => {
-  if (!file) {
-    return { isValid: false, error: 'No file selected' };
+  if (!request.recordId) {
+    errors.recordId = 'Record ID is required'
   }
   
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-  const maxSize = 5 * 1024 * 1024; // 5MB
-  
-  if (!allowedTypes.includes(file.type)) {
-    return { 
-      isValid: false, 
-      error: 'Only JPEG, JPG, PNG, and GIF files are allowed' 
-    };
+  if (!request.reason || request.reason.trim().length < 10) {
+    errors.reason = 'Reason for correction is required and must be at least 10 characters long'
   }
   
-  if (file.size > maxSize) {
-    return { 
-      isValid: false, 
-      error: 'File size must be less than 5MB' 
-    };
+  if (!request.details || request.details.trim().length < 20) {
+    errors.details = 'Correction details are required and must be at least 20 characters long'
   }
-  
-  return { isValid: true, error: null };
-};
-
-/**
- * Validate required field
- * @param {any} value - Value to validate
- * @param {string} fieldName - Name of the field for error message
- * @returns {object} - Validation result
- */
-export const validateRequired = (value, fieldName = 'Field') => {
-  const isEmpty = value === null || 
-                  value === undefined || 
-                  (typeof value === 'string' && value.trim() === '') ||
-                  (Array.isArray(value) && value.length === 0);
   
   return {
-    isValid: !isEmpty,
-    error: isEmpty ? `${fieldName} is required` : null
-  };
-};
+    isValid: Object.keys(errors).length === 0,
+    errors
+  }
+}
 
-/**
- * Validate string length
- * @param {string} value - String to validate
- * @param {number} minLength - Minimum length
- * @param {number} maxLength - Maximum length
- * @param {string} fieldName - Field name for error message
- * @returns {object} - Validation result
- */
-export const validateLength = (value, minLength, maxLength, fieldName = 'Field') => {
-  if (!value || typeof value !== 'string') {
-    return { isValid: false, error: `${fieldName} must be a valid string` };
+// File validation
+export const validateFile = (file, maxSizeMB = 5, allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf']) => {
+  if (!file) {
+    return { isValid: false, error: 'File is required' }
   }
   
-  const length = value.trim().length;
-  
-  if (length < minLength) {
-    return { 
-      isValid: false, 
-      error: `${fieldName} must be at least ${minLength} characters long` 
-    };
+  // Check file size
+  const maxSizeBytes = maxSizeMB * 1024 * 1024
+  if (file.size > maxSizeBytes) {
+    return { isValid: false, error: `File size must be less than ${maxSizeMB}MB` }
   }
   
-  if (length > maxLength) {
-    return { 
-      isValid: false, 
-      error: `${fieldName} must not exceed ${maxLength} characters` 
-    };
+  // Check file type
+  if (!allowedTypes.includes(file.type)) {
+    const allowedTypesString = allowedTypes.map(type => type.split('/')[1]).join(', ')
+    return { isValid: false, error: `File type must be one of: ${allowedTypesString}` }
   }
   
-  return { isValid: true, error: null };
-};
+  return { isValid: true, error: null }
+}
 
-/**
- * Validate dosage format (e.g., "2 tablets twice daily")
- * @param {string} dosage - Dosage to validate
- * @returns {boolean} - True if valid dosage format
- */
-export const isValidDosage = (dosage) => {
-  if (!dosage || typeof dosage !== 'string') return false;
-  
-  const trimmedDosage = dosage.trim();
-  return trimmedDosage.length >= 5 && trimmedDosage.length <= 200;
-};
-
-/**
- * Validate disease/diagnosis format
- * @param {string} diagnosis - Diagnosis to validate
- * @returns {boolean} - True if valid diagnosis format
- */
-export const isValidDiagnosis = (diagnosis) => {
-  if (!diagnosis || typeof diagnosis !== 'string') return false;
-  
-  const trimmedDiagnosis = diagnosis.trim();
-  return trimmedDiagnosis.length >= 2 && trimmedDiagnosis.length <= 500;
-};
-
-/**
- * Validate recommendations format
- * @param {string} recommendations - Recommendations to validate
- * @returns {boolean} - True if valid recommendations format
- */
-export const isValidRecommendations = (recommendations) => {
-  if (!recommendations || typeof recommendations !== 'string') return false;
-  
-  const trimmedRecommendations = recommendations.trim();
-  return trimmedRecommendations.length >= 10 && trimmedRecommendations.length <= 1000;
-};
-
-/**
- * Validate case status
- * @param {string} status - Case status to validate
- * @returns {boolean} - True if valid status
- */
-export const isValidCaseStatus = (status) => {
-  const validStatuses = ['improving', 'stable', 'deteriorating', 'critical', 'recovered'];
-  return validStatuses.includes(status?.toLowerCase());
-};
-
-/**
- * Sanitize string input (remove dangerous characters)
- * @param {string} input - Input to sanitize
- * @returns {string} - Sanitized string
- */
-export const sanitizeInput = (input) => {
-  if (!input || typeof input !== 'string') return '';
-  
-  return input
-    .trim()
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
-    .replace(/[<>]/g, '') // Remove angle brackets
-    .replace(/javascript:/gi, '') // Remove javascript: protocol
-    .replace(/on\w+\s*=/gi, ''); // Remove event handlers
-};
-
-/**
- * Validate form data object
- * @param {object} formData - Form data to validate
- * @param {object} validationRules - Validation rules object
- * @returns {object} - Validation result with errors object
- */
+// Generic form validation
 export const validateForm = (formData, validationRules) => {
-  const errors = {};
-  let isValid = true;
+  const errors = {}
   
   Object.keys(validationRules).forEach(field => {
-    const rules = validationRules[field];
-    const value = formData[field];
+    const rules = validationRules[field]
+    const value = formData[field]
     
-    // Check required
-    if (rules.required) {
-      const requiredCheck = validateRequired(value, field);
-      if (!requiredCheck.isValid) {
-        errors[field] = requiredCheck.error;
-        isValid = false;
-        return;
+    for (const rule of rules) {
+      const result = rule(value)
+      if (!result.isValid) {
+        errors[field] = result.error
+        break // Stop at first error for this field
       }
     }
-    
-    // Skip other validations if field is empty and not required
-    if (!value && !rules.required) return;
-    
-    // Check email
-    if (rules.email && !isValidEmail(value)) {
-      errors[field] = 'Please enter a valid email address';
-      isValid = false;
-    }
-    
-    // Check phone
-    if (rules.phone && !isValidPhone(value)) {
-      errors[field] = 'Please enter a valid phone number';
-      isValid = false;
-    }
-    
-    // Check name
-    if (rules.name && !isValidName(value)) {
-      errors[field] = 'Please enter a valid name (letters, spaces, hyphens only)';
-      isValid = false;
-    }
-    
-    // Check length
-    if (rules.minLength || rules.maxLength) {
-      const lengthCheck = validateLength(
-        value, 
-        rules.minLength || 0, 
-        rules.maxLength || Infinity, 
-        field
-      );
-      if (!lengthCheck.isValid) {
-        errors[field] = lengthCheck.error;
-        isValid = false;
-      }
-    }
-    
-    // Check custom validation function
-    if (rules.custom && typeof rules.custom === 'function') {
-      const customCheck = rules.custom(value);
-      if (!customCheck.isValid) {
-        errors[field] = customCheck.error;
-        isValid = false;
-      }
-    }
-  });
+  })
   
-  return { isValid, errors };
-};
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  }
+}

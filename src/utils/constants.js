@@ -1,344 +1,220 @@
-// User Roles
+// src/utils/constants.js
+
+// User roles
 export const USER_ROLES = {
   PATIENT: 'patient',
   DOCTOR: 'doctor',
   MANAGEMENT: 'management',
   ADMIN: 'admin'
-};
+}
 
-// Account Status
-export const ACCOUNT_STATUS = {
-  PENDING: 'pending',
-  VERIFIED: 'verified',
-  SUSPENDED: 'suspended',
-  REJECTED: 'rejected'
-};
-
-// Record Status
+// Record statuses
 export const RECORD_STATUS = {
   PENDING: 'pending',
   VERIFIED: 'verified',
-  REJECTED: 'rejected'
-};
+  REJECTED: 'rejected',
+  CORRECTION_REQUESTED: 'correction_requested'
+}
 
-// Case Status (Patient Condition)
-export const CASE_STATUS = {
-  IMPROVING: 'improving',
-  STABLE: 'stable',
-  DETERIORATING: 'deteriorating',
-  CRITICAL: 'critical',
-  RECOVERED: 'recovered'
-};
-
-// Correction Request Status
+// Correction request statuses
 export const CORRECTION_STATUS = {
   PENDING: 'pending',
   APPROVED: 'approved',
-  REJECTED: 'rejected'
-};
+  REJECTED: 'rejected',
+  IN_PROGRESS: 'in_progress'
+}
 
-// Notification Types
+// Case status options
+export const CASE_STATUS = {
+  IMPROVING: 'improving',
+  STABLE: 'stable',
+  DETERIORATING: 'deteriorating'
+}
+
+// Time constants
+export const TIME_CONSTANTS = {
+  OTP_EXPIRY_MINUTES: 10,
+  OTP_RESEND_COOLDOWN_SECONDS: 60,
+  TOKEN_EXPIRY_HOURS: 24,
+  SESSION_TIMEOUT_MINUTES: 30,
+  PASSWORD_RESET_EXPIRY_HOURS: 2,
+  FILE_UPLOAD_TIMEOUT_SECONDS: 30,
+  API_REQUEST_TIMEOUT_SECONDS: 10,
+  NOTIFICATION_AUTO_DISMISS_SECONDS: 5,
+  DEBOUNCE_SEARCH_MS: 300,
+  PAGINATION_DEFAULT_LIMIT: 10,
+  MAX_LOGIN_ATTEMPTS: 5,
+  LOCKOUT_DURATION_MINUTES: 15
+}
+
+// Date formats
+export const DATE_FORMATS = {
+  DISPLAY: 'MMM DD, YYYY',
+  INPUT: 'YYYY-MM-DD',
+  TIMESTAMP: 'YYYY-MM-DD HH:mm:ss',
+  SHORT: 'MM/DD/YYYY',
+  LONG: 'dddd, MMMM DD, YYYY'
+}
+
+// File upload constants
+export const FILE_UPLOAD = {
+  MAX_SIZE_MB: 5,
+  ALLOWED_IMAGE_TYPES: ['image/jpeg', 'image/png', 'image/jpg'],
+  ALLOWED_DOCUMENT_TYPES: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  MAX_FILES_PER_RECORD: 5
+}
+
+// Notification types
 export const NOTIFICATION_TYPES = {
-  NEW_RECORD: 'new_record',
-  RECORD_VERIFIED: 'record_verified',
-  CORRECTION_REQUEST: 'correction_request',
-  CORRECTION_PROCESSED: 'correction_processed',
-  ACCOUNT_VERIFICATION: 'account_verification',
-  ACCOUNT_APPROVED: 'account_approved',
-  ACCOUNT_REJECTED: 'account_rejected',
-  SYSTEM_ALERT: 'system_alert'
-};
+  SUCCESS: 'success',
+  ERROR: 'error',
+  WARNING: 'warning',
+  INFO: 'info'
+}
 
-// Notification Priority
-export const NOTIFICATION_PRIORITY = {
-  LOW: 'low',
-  NORMAL: 'normal',
-  HIGH: 'high',
-  URGENT: 'urgent'
-};
+// Navigation menu items by role
+export const NAVIGATION_MENUS = {
+  [USER_ROLES.PATIENT]: [
+    { path: '/patient/dashboard', label: 'Dashboard', icon: 'home' },
+    { path: '/patient/records', label: 'My Records', icon: 'file-text' },
+    { path: '/patient/request-correction', label: 'Request Correction', icon: 'edit' },
+    { path: '/patient/profile', label: 'Profile', icon: 'user' }
+  ],
+  [USER_ROLES.DOCTOR]: [
+    { path: '/doctor/dashboard', label: 'Dashboard', icon: 'home' },
+    { path: '/doctor/verify-records', label: 'Verify Records', icon: 'check-circle' },
+    { path: '/doctor/notifications', label: 'Notifications', icon: 'bell' },
+    { path: '/doctor/correction-requests', label: 'Correction Requests', icon: 'edit-3' }
+  ],
+  [USER_ROLES.MANAGEMENT]: [
+    { path: '/management/dashboard', label: 'Dashboard', icon: 'home' },
+    { path: '/management/patient-search', label: 'Patient Search', icon: 'search' },
+    { path: '/management/add-record', label: 'Add Record', icon: 'plus' }
+  ],
+  [USER_ROLES.ADMIN]: [
+    { path: '/admin/dashboard', label: 'Dashboard', icon: 'home' },
+    { path: '/admin/account-verification', label: 'Account Verification', icon: 'user-check' },
+    { path: '/admin/user-management', label: 'User Management', icon: 'users' },
+    { path: '/admin/system-overview', label: 'System Overview', icon: 'bar-chart' }
+  ]
+}
 
-// Routes
-export const ROUTES = {
-  HOME: '/',
-  LOGIN: '/login',
-  REGISTER: '/register',
-  FORGOT_PASSWORD: '/forgot-password',
-  OTP_VERIFICATION: '/otp-verification',
-  MANAGEMENT_LOGIN: '/management-login',
-  UNAUTHORIZED: '/unauthorized',
-  POLICIES: '/policies',
-  
-  // Patient Routes
-  PATIENT_DASHBOARD: '/patient/dashboard',
-  PATIENT_RECORDS: '/patient/records',
-  PATIENT_PROFILE: '/patient/profile',
-  REQUEST_CORRECTION: '/patient/request-correction',
-  
-  // Doctor Routes
-  DOCTOR_DASHBOARD: '/doctor/dashboard',
-  VERIFY_RECORDS: '/doctor/verify-records',
-  DOCTOR_NOTIFICATIONS: '/doctor/notifications',
-  EDIT_RECORD: '/doctor/edit-record',
-  CORRECTION_REQUESTS: '/doctor/correction-requests',
-  
-  // Management Routes
-  MANAGEMENT_DASHBOARD: '/management/dashboard',
-  ADD_RECORD: '/management/add-record',
-  PATIENT_SEARCH: '/management/patient-search',
-  RECORD_ENTRY: '/management/record-entry',
-  
-  // Admin Routes
-  ADMIN_DASHBOARD: '/admin/dashboard',
-  ACCOUNT_VERIFICATION: '/admin/account-verification',
-  USER_MANAGEMENT: '/admin/user-management',
-  SYSTEM_OVERVIEW: '/admin/system-overview'
-};
+// API endpoints
+export const API_ENDPOINTS = {
+  AUTH: {
+    LOGIN: '/auth/login',
+    REGISTER: '/auth/register',
+    LOGOUT: '/auth/logout',
+    FORGOT_PASSWORD: '/auth/forgot-password',
+    RESET_PASSWORD: '/auth/reset-password',
+    VERIFY_OTP: '/auth/verify-otp'
+  },
+  USERS: {
+    PROFILE: '/users/profile',
+    UPDATE_PROFILE: '/users/update-profile',
+    VERIFY_ACCOUNT: '/users/verify-account'
+  },
+  RECORDS: {
+    LIST: '/records',
+    CREATE: '/records/create',
+    UPDATE: '/records/update',
+    DELETE: '/records/delete',
+    VERIFY: '/records/verify'
+  },
+  CORRECTIONS: {
+    REQUEST: '/corrections/request',
+    LIST: '/corrections',
+    RESPOND: '/corrections/respond'
+  },
+  NOTIFICATIONS: {
+    LIST: '/notifications',
+    MARK_READ: '/notifications/mark-read',
+    MARK_ALL_READ: '/notifications/mark-all-read'
+  }
+}
 
-// Form Validation Rules
+// Error messages
+export const ERROR_MESSAGES = {
+  NETWORK_ERROR: 'Network error. Please check your connection and try again.',
+  UNAUTHORIZED: 'You are not authorized to perform this action.',
+  SESSION_EXPIRED: 'Your session has expired. Please login again.',
+  INVALID_CREDENTIALS: 'Invalid email or password.',
+  USER_NOT_FOUND: 'User not found.',
+  EMAIL_ALREADY_EXISTS: 'An account with this email already exists.',
+  WEAK_PASSWORD: 'Password is too weak. Please choose a stronger password.',
+  INVALID_OTP: 'Invalid or expired OTP.',
+  FILE_TOO_LARGE: 'File size is too large. Maximum allowed size is 5MB.',
+  INVALID_FILE_TYPE: 'Invalid file type. Please upload an image or PDF file.',
+  REQUIRED_FIELD: 'This field is required.',
+  INVALID_EMAIL: 'Please enter a valid email address.',
+  INVALID_PHONE: 'Please enter a valid phone number.',
+  GENERIC_ERROR: 'Something went wrong. Please try again.'
+}
+
+// Success messages
+export const SUCCESS_MESSAGES = {
+  LOGIN_SUCCESS: 'Login successful!',
+  REGISTRATION_SUCCESS: 'Registration successful! Please wait for admin verification.',
+  PASSWORD_RESET_SENT: 'Password reset email sent successfully.',
+  PROFILE_UPDATED: 'Profile updated successfully.',
+  RECORD_CREATED: 'Medical record created successfully.',
+  RECORD_UPDATED: 'Medical record updated successfully.',
+  RECORD_VERIFIED: 'Record verified successfully.',
+  CORRECTION_REQUESTED: 'Correction request submitted successfully.',
+  ACCOUNT_VERIFIED: 'Account verified successfully.',
+  NOTIFICATION_SENT: 'Notification sent successfully.'
+}
+
+// Validation rules
 export const VALIDATION_RULES = {
   EMAIL: {
-    PATTERN: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-    MESSAGE: 'Please enter a valid email address'
+    REQUIRED: true,
+    PATTERN: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   },
   PASSWORD: {
-    MIN_LENGTH: 8,
-    PATTERN: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-    MESSAGE: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character'
+    MIN_LENGTH: 6,
+    REQUIRE_UPPERCASE: true,
+    REQUIRE_LOWERCASE: true,
+    REQUIRE_NUMBER: true
   },
   PHONE: {
-    PATTERN: /^[\+]?[1-9][\d]{0,15}$/,
-    MESSAGE: 'Please enter a valid phone number'
+    MIN_LENGTH: 10,
+    MAX_LENGTH: 15,
+    PATTERN: /^\+?[\d\s\-\(\)]+$/
   },
   NAME: {
     MIN_LENGTH: 2,
     MAX_LENGTH: 50,
-    PATTERN: /^[a-zA-Z\s]+$/,
-    MESSAGE: 'Name should contain only letters and spaces'
+    PATTERN: /^[a-zA-Z\s\-']+$/
   },
   OTP: {
     LENGTH: 6,
-    PATTERN: /^\d{6}$/,
-    MESSAGE: 'OTP must be 6 digits'
+    PATTERN: /^\d{6}$/
   }
-};
+}
 
-// Medical Record Fields
-export const MEDICAL_FIELDS = {
-  VITAL_SIGNS: {
-    BLOOD_PRESSURE: 'bloodPressure',
-    HEART_RATE: 'heartRate',
-    TEMPERATURE: 'temperature',
-    WEIGHT: 'weight',
-    HEIGHT: 'height',
-    OXYGEN_SATURATION: 'oxygenSaturation',
-    RESPIRATORY_RATE: 'respiratoryRate'
-  },
-  PRESCRIPTION_FREQUENCY: {
-    ONCE_DAILY: 'once_daily',
-    TWICE_DAILY: 'twice_daily',
-    THREE_TIMES_DAILY: 'three_times_daily',
-    FOUR_TIMES_DAILY: 'four_times_daily',
-    AS_NEEDED: 'as_needed',
-    WEEKLY: 'weekly',
-    MONTHLY: 'monthly'
-  },
-  PRESCRIPTION_TIMING: {
-    BEFORE_MEALS: 'before_meals',
-    AFTER_MEALS: 'after_meals',
-    WITH_MEALS: 'with_meals',
-    MORNING: 'morning',
-    EVENING: 'evening',
-    BEDTIME: 'bedtime',
-    EMPTY_STOMACH: 'empty_stomach'
-  }
-};
-
-// File Upload Constraints
-export const FILE_UPLOAD = {
-  MAX_SIZE_MB: 5,
-  MAX_SIZE_BYTES: 5 * 1024 * 1024,
-  ALLOWED_IMAGE_TYPES: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'],
-  ALLOWED_DOCUMENT_TYPES: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-  MAX_FILES_PER_RECORD: 10
-};
-
-// Date and Time Formats
-export const DATE_FORMATS = {
-  DISPLAY: 'DD/MM/YYYY',
-  API: 'YYYY-MM-DD',
-  DATETIME_DISPLAY: 'DD/MM/YYYY HH:mm',
-  TIME_DISPLAY: 'HH:mm'
-};
-
-// Pagination
+// Pagination constants
 export const PAGINATION = {
   DEFAULT_PAGE_SIZE: 10,
-  PAGE_SIZE_OPTIONS: [5, 10, 20, 50],
-  MAX_PAGE_SIZE: 100
-};
+  PAGE_SIZE_OPTIONS: [10, 25, 50, 100],
+  MAX_VISIBLE_PAGES: 5
+}
 
-// Local Storage Keys
+// Theme colors
+export const THEME_COLORS = {
+  PRIMARY: '#3B82F6',
+  SECONDARY: '#6B7280',
+  SUCCESS: '#10B981',
+  WARNING: '#F59E0B',
+  ERROR: '#EF4444',
+  INFO: '#3B82F6'
+}
+
+// Local storage keys
 export const STORAGE_KEYS = {
   USER_TOKEN: 'pms_user_token',
   USER_DATA: 'pms_user_data',
-  REMEMBER_EMAIL: 'pms_remember_email',
+  REMEMBER_ME: 'pms_remember_me',
   THEME_PREFERENCE: 'pms_theme',
   LANGUAGE_PREFERENCE: 'pms_language'
-};
-
-// API Endpoints (if using external APIs)
-export const API_ENDPOINTS = {
-  BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001/api',
-  AUTH: '/auth',
-  USERS: '/users',
-  RECORDS: '/records',
-  NOTIFICATIONS: '/notifications',
-  UPLOADS: '/uploads'
-};
-
-// Error Messages
-export const ERROR_MESSAGES = {
-  NETWORK_ERROR: 'Network connection failed. Please check your internet connection.',
-  UNAUTHORIZED: 'You are not authorized to perform this action.',
-  FORBIDDEN: 'Access denied. Please contact your administrator.',
-  NOT_FOUND: 'The requested resource was not found.',
-  VALIDATION_ERROR: 'Please check your input and try again.',
-  SERVER_ERROR: 'Something went wrong on our end. Please try again later.',
-  FILE_TOO_LARGE: `File size must be less than ${FILE_UPLOAD.MAX_SIZE_MB}MB`,
-  INVALID_FILE_TYPE: 'File type not supported',
-  LOGIN_FAILED: 'Invalid email or password',
-  REGISTRATION_FAILED: 'Registration failed. Please try again.',
-  OTP_EXPIRED: 'OTP has expired. Please request a new one.',
-  OTP_INVALID: 'Invalid OTP. Please try again.',
-  ACCOUNT_NOT_VERIFIED: 'Your account is pending verification by an administrator.',
-  RECORD_NOT_FOUND: 'Medical record not found.',
-  PERMISSION_DENIED: 'You do not have permission to access this record.'
-};
-
-// Success Messages
-export const SUCCESS_MESSAGES = {
-  LOGIN_SUCCESS: 'Successfully logged in',
-  REGISTRATION_SUCCESS: 'Registration successful. Please wait for admin verification.',
-  RECORD_CREATED: 'Medical record created successfully',
-  RECORD_UPDATED: 'Medical record updated successfully',
-  RECORD_VERIFIED: 'Medical record verified successfully',
-  CORRECTION_REQUESTED: 'Correction request submitted successfully',
-  CORRECTION_PROCESSED: 'Correction request processed successfully',
-  NOTIFICATION_SENT: 'Notification sent successfully',
-  FILE_UPLOADED: 'File uploaded successfully',
-  PROFILE_UPDATED: 'Profile updated successfully',
-  PASSWORD_CHANGED: 'Password changed successfully',
-  OTP_SENT: 'OTP sent to your email address'
-};
-
-// System Configuration
-export const SYSTEM_CONFIG = {
-  OTP_EXPIRY_MINUTES: 10,
-  SESSION_TIMEOUT_MINUTES: 60,
-  PASSWORD_RESET_EXPIRY_HOURS: 24,
-  MAX_LOGIN_ATTEMPTS: 5,
-  ACCOUNT_LOCKOUT_MINUTES: 30,
-  NOTIFICATION_CLEANUP_DAYS: 30,
-  BACKUP_FREQUENCY_HOURS: 24
-};
-
-// Theme Configuration
-export const THEME = {
-  COLORS: {
-    PRIMARY: '#3B82F6',
-    SECONDARY: '#64748B',
-    SUCCESS: '#10B981',
-    WARNING: '#F59E0B',
-    ERROR: '#EF4444',
-    INFO: '#06B6D4'
-  },
-  BREAKPOINTS: {
-    SM: '640px',
-    MD: '768px',
-    LG: '1024px',
-    XL: '1280px'
-  }
-};
-
-// Medical Specialties (for doctor registration)
-export const MEDICAL_SPECIALTIES = [
-  'General Medicine',
-  'Cardiology',
-  'Dermatology',
-  'Endocrinology',
-  'Gastroenterology',
-  'Hematology',
-  'Nephrology',
-  'Neurology',
-  'Oncology',
-  'Orthopedics',
-  'Pediatrics',
-  'Psychiatry',
-  'Pulmonology',
-  'Radiology',
-  'Surgery',
-  'Urology',
-  'Gynecology',
-  'Ophthalmology',
-  'ENT (Ear, Nose, Throat)',
-  'Emergency Medicine',
-  'Family Medicine',
-  'Internal Medicine',
-  'Anesthesiology',
-  'Pathology',
-  'Physical Medicine'
-];
-
-// Common Diseases (for quick selection)
-export const COMMON_DISEASES = [
-  'Hypertension',
-  'Diabetes Mellitus',
-  'Asthma',
-  'Common Cold',
-  'Influenza',
-  'Pneumonia',
-  'Bronchitis',
-  'Gastritis',
-  'Migraine',
-  'Arthritis',
-  'Allergies',
-  'Anxiety',
-  'Depression',
-  'Insomnia',
-  'Back Pain',
-  'Skin Infection',
-  'UTI (Urinary Tract Infection)',
-  'Fever',
-  'Headache',
-  'Stomach Ache',
-  'Chest Pain',
-  'Shortness of Breath',
-  'Fatigue',
-  'Dizziness',
-  'Nausea'
-];
-
-// Export all constants as default for easy importing
-export default {
-  USER_ROLES,
-  ACCOUNT_STATUS,
-  RECORD_STATUS,
-  CASE_STATUS,
-  CORRECTION_STATUS,
-  NOTIFICATION_TYPES,
-  NOTIFICATION_PRIORITY,
-  ROUTES,
-  VALIDATION_RULES,
-  MEDICAL_FIELDS,
-  FILE_UPLOAD,
-  DATE_FORMATS,
-  PAGINATION,
-  STORAGE_KEYS,
-  API_ENDPOINTS,
-  ERROR_MESSAGES,
-  SUCCESS_MESSAGES,
-  SYSTEM_CONFIG,
-  THEME,
-  MEDICAL_SPECIALTIES,
-  COMMON_DISEASES
-};
+}

@@ -27,7 +27,7 @@ import DoctorDashboard from './pages/doctor/DoctorDashboard'
 import VerifyRecords from './pages/doctor/VerifyRecords'
 import ViewNotifications from './pages/doctor/ViewNotifications'
 import EditRecord from './pages/doctor/EditRecord'
-import CorrectionRequests from './pages/doctor/CorrectionRequests'
+import CorrectionRequests from './pages/doctor/CorrectionRequests.jsx'
 
 // Management Pages
 import ManagementDashboard from './pages/management/ManagementDashboard'
