@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../../services/firebase/config';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Eye, Download, Calendar, User, FileText, Pill, Activity, Image, AlertCircle, Search, Filter } from 'lucide-react';
 
 const ViewRecords = () => {

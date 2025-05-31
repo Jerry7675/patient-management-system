@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import LoadingSpinner from '../common/LoadingSpinner';
+import LoadingSpinner from "../../components/common/LoadingSpinner";
+
 
 const ForgotPassword = () => {
   const navigate = useNavigate();

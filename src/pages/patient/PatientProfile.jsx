@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { updateEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { db, auth } from '../../services/firebase/config';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { User, Mail, Phone, MapPin, Calendar, Shield, Edit2, Save, X, Eye, EyeOff } from 'lucide-react';
 
 const PatientProfile = () => {

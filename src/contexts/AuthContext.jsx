@@ -10,6 +10,7 @@ import {
 } from '../services/firebase/auth';
 
 const AuthContext = createContext();
+export { AuthContext }; 
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

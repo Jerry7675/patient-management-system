@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { db } from '../../services/firebase/config';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { AlertTriangle, Send, FileText, Clock, CheckCircle, XCircle, User, Calendar } from 'lucide-react';
 
 const RequestCorrection = () => {
