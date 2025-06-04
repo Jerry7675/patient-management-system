@@ -465,7 +465,7 @@ const Registration = ({ onNavigate }) => {
               Already have an account?{' '}
               <button
                 type="button"
-                onClick={() => onNavigate && onNavigate('login')}
+                onClick={() =>  navigate('/login')}
                 className="font-medium text-blue-600 hover:text-blue-500"
               >
                 Sign in here

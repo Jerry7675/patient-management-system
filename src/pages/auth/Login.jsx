@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Lock, Mail, User, Stethoscope, Settings, Shield, AlertCircle } from 'lucide-react';
-
-const Login = ({ onNavigate, onLogin }) => {
+import {useNavigate} from 'react-router-dom';
+const Login = ({  onLogin }) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -293,7 +294,8 @@ const Login = ({ onNavigate, onLogin }) => {
               </div>
               <button
                 type="button"
-                onClick={() => onNavigate && onNavigate('forgot-password')}
+                onClick={() => navigate('/forgot-password')
+}
                 className="text-sm text-blue-600 hover:text-blue-500"
               >
                 Forgot password?
@@ -326,7 +328,8 @@ const Login = ({ onNavigate, onLogin }) => {
                 Don't have an account?{' '}
                 <button
                   type="button"
-                  onClick={() => onNavigate && onNavigate('register')}
+                  onClick={() => navigate('/register')
+}
                   className="font-medium text-blue-600 hover:text-blue-500"
                 >
                   Create account
