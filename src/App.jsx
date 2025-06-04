@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom' // Removed Router import
 import { useAuth } from './hooks/useAuth'
 import { USER_ROLES } from './utils/constants'
 
@@ -134,163 +134,158 @@ const AuthenticatedLayout = ({ children }) => {
 }
 
 function App() {
-  const { initializeAuth } = useAuth()
-  
-  useEffect(() => {
-    initializeAuth()
-  }, [initializeAuth])
+
 
   return (
-    <Router>
-      <AuthenticatedLayout>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          } />
-          
-          <Route path="/register" element={
-            <PublicRoute>
-              <Registration />
-            </PublicRoute>
-          } />
-          
-          <Route path="/forgot-password" element={
-            <PublicRoute>
-              <ForgotPassword />
-            </PublicRoute>
-          } />
-          
-          <Route path="/otp-verification" element={
-            <PublicRoute>
-              <OTPVerification />
-            </PublicRoute>
-          } />
-          
-          <Route path="/management-login" element={
-            <PublicRoute>
-              <ManagementLogin />
-            </PublicRoute>
-          } />
+    // Removed the <Router> wrapper here since it's already in main.jsx
+    <AuthenticatedLayout>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/login" element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        } />
+        
+        <Route path="/register" element={
+          <PublicRoute>
+            <Registration />
+          </PublicRoute>
+        } />
+        
+        <Route path="/forgot-password" element={
+          <PublicRoute>
+            <ForgotPassword />
+          </PublicRoute>
+        } />
+        
+        <Route path="/otp-verification" element={
+          <PublicRoute>
+            <OTPVerification />
+          </PublicRoute>
+        } />
+        
+        <Route path="/management-login" element={
+          <PublicRoute>
+            <ManagementLogin />
+          </PublicRoute>
+        } />
 
-          {/* Patient Routes */}
-          <Route path="/patient/dashboard" element={
-            <ProtectedRoute allowedRoles={[USER_ROLES.PATIENT]}>
-              <PatientDashboard />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/patient/records" element={
-            <ProtectedRoute allowedRoles={[USER_ROLES.PATIENT]}>
-              <ViewRecords />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/patient/request-correction" element={
-            <ProtectedRoute allowedRoles={[USER_ROLES.PATIENT]}>
-              <RequestCorrection />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/patient/profile" element={
-            <ProtectedRoute allowedRoles={[USER_ROLES.PATIENT]}>
-              <PatientProfile />
-            </ProtectedRoute>
-          } />
+        {/* Patient Routes */}
+        <Route path="/patient/dashboard" element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.PATIENT]}>
+            <PatientDashboard />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/patient/records" element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.PATIENT]}>
+            <ViewRecords />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/patient/request-correction" element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.PATIENT]}>
+            <RequestCorrection />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/patient/profile" element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.PATIENT]}>
+            <PatientProfile />
+          </ProtectedRoute>
+        } />
 
-          {/* Doctor Routes */}
-          <Route path="/doctor/dashboard" element={
-            <ProtectedRoute allowedRoles={[USER_ROLES.DOCTOR]}>
-              <DoctorDashboard />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/doctor/verify-records" element={
-            <ProtectedRoute allowedRoles={[USER_ROLES.DOCTOR]}>
-              <VerifyRecords />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/doctor/notifications" element={
-            <ProtectedRoute allowedRoles={[USER_ROLES.DOCTOR]}>
-              <ViewNotifications />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/doctor/edit-record/:recordId" element={
-            <ProtectedRoute allowedRoles={[USER_ROLES.DOCTOR]}>
-              <EditRecord />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/doctor/correction-requests" element={
-            <ProtectedRoute allowedRoles={[USER_ROLES.DOCTOR]}>
-              <CorrectionRequests />
-            </ProtectedRoute>
-          } />
+        {/* Doctor Routes */}
+        <Route path="/doctor/dashboard" element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.DOCTOR]}>
+            <DoctorDashboard />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/doctor/verify-records" element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.DOCTOR]}>
+            <VerifyRecords />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/doctor/notifications" element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.DOCTOR]}>
+            <ViewNotifications />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/doctor/edit-record/:recordId" element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.DOCTOR]}>
+            <EditRecord />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/doctor/correction-requests" element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.DOCTOR]}>
+            <CorrectionRequests />
+          </ProtectedRoute>
+        } />
 
-          {/* Management Routes */}
-          <Route path="/management/dashboard" element={
-            <ProtectedRoute allowedRoles={[USER_ROLES.MANAGEMENT]}>
-              <ManagementDashboard />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/management/add-record" element={
-            <ProtectedRoute allowedRoles={[USER_ROLES.MANAGEMENT]}>
-              <AddRecord />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/management/patient-search" element={
-            <ProtectedRoute allowedRoles={[USER_ROLES.MANAGEMENT]}>
-              <PatientSearch />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/management/record-entry/:patientId" element={
-            <ProtectedRoute allowedRoles={[USER_ROLES.MANAGEMENT]}>
-              <RecordEntry />
-            </ProtectedRoute>
-          } />
+        {/* Management Routes */}
+        <Route path="/management/dashboard" element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.MANAGEMENT]}>
+            <ManagementDashboard />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/management/add-record" element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.MANAGEMENT]}>
+            <AddRecord />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/management/patient-search" element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.MANAGEMENT]}>
+            <PatientSearch />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/management/record-entry/:patientId" element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.MANAGEMENT]}>
+            <RecordEntry />
+          </ProtectedRoute>
+        } />
 
-          {/* Admin Routes */}
-          <Route path="/admin/dashboard" element={
-            <ProtectedRoute allowedRoles={[USER_ROLES.ADMIN]}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/admin/account-verification" element={
-            <ProtectedRoute allowedRoles={[USER_ROLES.ADMIN]}>
-              <AccountVerification />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/admin/user-management" element={
-            <ProtectedRoute allowedRoles={[USER_ROLES.ADMIN]}>
-              <UserManagement />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/admin/system-overview" element={
-            <ProtectedRoute allowedRoles={[USER_ROLES.ADMIN]}>
-              <SystemOverview />
-            </ProtectedRoute>
-          } />
+        {/* Admin Routes */}
+        <Route path="/admin/dashboard" element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.ADMIN]}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/admin/account-verification" element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.ADMIN]}>
+            <AccountVerification />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/admin/user-management" element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.ADMIN]}>
+            <UserManagement />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/admin/system-overview" element={
+          <ProtectedRoute allowedRoles={[USER_ROLES.ADMIN]}>
+            <SystemOverview />
+          </ProtectedRoute>
+        } />
 
-          {/* Shared Routes */}
-          <Route path="/policies" element={<Policies />} />
-          <Route path="/unauthorized" element={<UnauthorizedAccess />} />
+        {/* Shared Routes */}
+        <Route path="/policies" element={<Policies />} />
+        <Route path="/unauthorized" element={<UnauthorizedAccess />} />
 
-          {/* Default Routes */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </AuthenticatedLayout>
-    </Router>
+        {/* Default Routes */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </AuthenticatedLayout>
   )
 }
 
