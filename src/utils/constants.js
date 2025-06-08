@@ -55,6 +55,12 @@ export const DATE_FORMATS = {
   SHORT: 'MM/DD/YYYY',
   LONG: 'dddd, MMMM DD, YYYY'
 }
+export const USER_STATUS = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  SUSPENDED: 'suspended'
+};
 
 // File upload constants
 export const FILE_UPLOAD = {

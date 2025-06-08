@@ -1,16 +1,10 @@
-// File: src/context/AuthContext.jsx
+// File: src/contexts/AuthContext.jsx
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  onAuthStateChange, 
-  getCurrentUserData,
-  signInUser,
-  signOutUser,
-  registerUser,
-  resetPassword
-} from '../services/firebase/auth';
+import firebaseAuth from '../services/firebase/auth';
 
 const AuthContext = createContext();
-export { AuthContext }; 
+export { AuthContext };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -31,7 +25,11 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       setLoading(true);
-      const result = await registerUser(userRegistrationData);
+      const result = await firebaseAuth.signUp(
+        userRegistrationData.email,
+        userRegistrationData.password,
+        userRegistrationData
+      );
       return result;
     } catch (error) {
       setError(error.message);
@@ -46,7 +44,7 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       setLoading(true);
-      const result = await signInUser(email, password);
+      const result = await firebaseAuth.signIn(email, password);
       return result;
     } catch (error) {
       setError(error.message);
@@ -60,7 +58,7 @@ export const AuthProvider = ({ children }) => {
   const signout = async () => {
     try {
       setError(null);
-      await signOutUser();
+      await firebaseAuth.signOut();
       setCurrentUser(null);
       setUserData(null);
     } catch (error) {
@@ -73,7 +71,7 @@ export const AuthProvider = ({ children }) => {
   const forgotPassword = async (email) => {
     try {
       setError(null);
-      await resetPassword(email);
+      await firebaseAuth.resetPassword(email);
     } catch (error) {
       setError(error.message);
       throw error;
@@ -97,13 +95,12 @@ export const AuthProvider = ({ children }) => {
 
   // Monitor auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChange(async (user) => {
+    const unsubscribe = firebaseAuth.onAuthStateChanged(async (user) => {
       try {
         setLoading(true);
         if (user) {
           setCurrentUser(user);
-          // Get user data from Firestore
-          const data = await getCurrentUserData(user.uid);
+          const data = await firebaseAuth.getUserData(user.uid);
           setUserData(data);
         } else {
           setCurrentUser(null);
@@ -112,7 +109,6 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         console.error('Error fetching user data:', error);
         setError(error.message);
-        // If there's an error fetching user data, sign out
         setCurrentUser(null);
         setUserData(null);
       } finally {

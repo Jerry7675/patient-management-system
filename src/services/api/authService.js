@@ -1,7 +1,15 @@
 // src/services/api/authService.js
 import firebaseAuth from '../firebase/auth';
 import firestoreService from '../firebase/firestore';
-import { ROLES, USER_STATUS } from '../../utils/constants';
+import { USER_ROLES, RECORD_STATUS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../../utils/constants';
+
+// Define USER_STATUS since it's not in your constants
+const USER_STATUS = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  SUSPENDED: 'suspended'
+};
 
 class AuthService {
   // Login with role-specific validation
@@ -13,7 +21,7 @@ class AuthService {
       const user = result.user;
 
       // Check admin verification
-      if (user.status !== USER_STATUS.APPROVED && user.role !== ROLES.ADMIN) {
+      if (user.status !== USER_STATUS.APPROVED && user.role !== USER_ROLES.ADMIN) {
         await firebaseAuth.signOut();
         return {
           success: false,
@@ -43,64 +51,79 @@ class AuthService {
   }
 
   // Register user + Firestore user doc
-  async register(userData) {
-    try {
-      const { email, password, role, ...additionalData } = userData;
+async register(userData) {
+  try {
+    const { email, password, role, ...additionalData } = userData;
 
-      const validation = this.validateRegistrationData(userData);
-      if (!validation.isValid) {
-        return { success: false, error: validation.errors.join(', ') };
-      }
-
-      const existingUser = await this.checkEmailExists(email);
-      if (existingUser) {
-        return { success: false, error: 'An account with this email already exists' };
-      }
-
-      const roleSpecificData = this.prepareRoleSpecificData(role, additionalData);
-
-      const result = await firebaseAuth.signUp(email, password, {
-        ...roleSpecificData,
-        role,
-        status: role === ROLES.ADMIN ? USER_STATUS.APPROVED : USER_STATUS.PENDING,
-        emailVerified: false,
-        profileComplete: false
-      });
-
-      if (!result.success) return result;
-      const firebaseUser = result.user;
-
-      // Firestore user profile
-      await firestoreService.setDocument('users', firebaseUser.uid, {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        displayName: additionalData.displayName || '',
-        role,
-        status: role === ROLES.ADMIN ? USER_STATUS.APPROVED : USER_STATUS.PENDING,
-        emailVerified: false,
-        profileComplete: false,
-        createdAt: new Date()
-      });
-
-      // Role-specific doc
-      await this.createRoleSpecificDocument(firebaseUser.uid, role, roleSpecificData);
-
-      // Notify admin
-      if (role !== ROLES.ADMIN) {
-        await this.notifyAdminForApproval(firebaseUser);
-      }
-
-      return {
-        success: true,
-        user: firebaseUser,
-        message: role === ROLES.ADMIN
-          ? 'Admin account created successfully'
-          : 'Registration successful. Please wait for admin approval.'
-      };
-    } catch (error) {
-      return { success: false, error: error.message };
+    const validation = this.validateRegistrationData(userData);
+    if (!validation.isValid) {
+      return { success: false, error: validation.errors.join(', ') };
     }
+
+    const existingUser = await this.checkEmailExists(email);
+    if (existingUser) {
+      return { success: false, error: 'An account with this email already exists' };
+    }
+
+    const roleSpecificData = this.prepareRoleSpecificData(role, additionalData);
+
+    const result = await firebaseAuth.signUp(email, password, {
+      ...roleSpecificData,
+      role,
+      status: role === USER_ROLES.ADMIN ? USER_STATUS.APPROVED : USER_STATUS.PENDING,
+      emailVerified: false,
+      profileComplete: false
+    });
+
+    if (!result.success) return result;
+    const firebaseUser = result.user;
+
+    // ✅ Firestore user profile data
+    const userProfile = {
+      uid: firebaseUser.uid,
+      email: firebaseUser.email,
+      displayName: additionalData.displayName || '',
+      role,
+      status: role === USER_ROLES.ADMIN ? USER_STATUS.APPROVED : USER_STATUS.PENDING,
+      emailVerified: false,
+      profileComplete: false,
+      createdAt: new Date()
+    };
+
+    console.log("Attempting Firestore write...:");
+    
+    // ✅ Write to Firestore and ensure it's successful
+    const firestoreResult = await firestoreService.setDocument('users', firebaseUser.uid, userProfile);
+    console.log("firestore user write result:", firestoreResult);
+
+    if (!firestoreResult.success) {
+      await firebaseAuth.signOut(); // optional cleanup
+      return {
+        success: false,
+        error: 'Failed to save user profile. Please try again.'
+      };
+    }
+
+    // Role-specific doc
+    await this.createRoleSpecificDocument(firebaseUser.uid, role, roleSpecificData);
+
+    // Notify admin
+    if (role !== USER_ROLES.ADMIN) {
+      await this.notifyAdminForApproval(firebaseUser);
+    }
+
+    return {
+      success: true,
+      user: firebaseUser,
+      message: role === USER_ROLES.ADMIN
+        ? 'Admin account created successfully'
+        : 'Registration successful. Please wait for admin approval.'
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
+}
+
 
   async logout() {
     try {
@@ -171,25 +194,25 @@ class AuthService {
     if (!email || !email.includes('@')) errors.push('Valid email is required');
     if (!password || password.length < 6) errors.push('Password must be at least 6 characters');
     if (!displayName || displayName.trim().length < 2) errors.push('Display name required');
-    if (!role || !Object.values(ROLES).includes(role)) errors.push('Valid role is required');
+    if (!role || !Object.values(USER_ROLES).includes(role)) errors.push('Valid role is required');
 
     switch (role) {
-      case ROLES.PATIENT:
+      case USER_ROLES.PATIENT:
         if (!userData.dateOfBirth) errors.push('Date of birth required');
         if (!userData.phoneNumber) errors.push('Phone number required');
         if (!userData.address) errors.push('Address required');
         break;
-      case ROLES.DOCTOR:
+      case USER_ROLES.DOCTOR:
         if (!userData.licenseNumber) errors.push('License number required');
         if (!userData.specialization) errors.push('Specialization required');
         if (!userData.phoneNumber) errors.push('Phone number required');
         break;
-      case ROLES.MANAGEMENT:
+      case USER_ROLES.MANAGEMENT:
         if (!userData.department) errors.push('Department required');
         if (!userData.employeeId) errors.push('Employee ID required');
         if (!userData.phoneNumber) errors.push('Phone number required');
         break;
-      case ROLES.ADMIN:
+      case USER_ROLES.ADMIN:
         if (!userData.adminCode) errors.push('Admin code required');
         break;
     }
@@ -205,17 +228,38 @@ class AuthService {
     };
 
     switch (role) {
-      case ROLES.PATIENT:
-        return { ...base, dateOfBirth: additionalData.dateOfBirth, address: additionalData.address,
-          emergencyContact: additionalData.emergencyContact || '', bloodGroup: additionalData.bloodGroup || '', allergies: additionalData.allergies || [] };
-      case ROLES.DOCTOR:
-        return { ...base, licenseNumber: additionalData.licenseNumber, specialization: additionalData.specialization,
-          experience: additionalData.experience || 0, qualification: additionalData.qualification || '', workingHours: additionalData.workingHours || {} };
-      case ROLES.MANAGEMENT:
-        return { ...base, department: additionalData.department, employeeId: additionalData.employeeId,
-          position: additionalData.position || '', supervisor: additionalData.supervisor || '' };
-      case ROLES.ADMIN:
-        return { ...base, adminLevel: additionalData.adminLevel || 1, permissions: additionalData.permissions || [] };
+      case USER_ROLES.PATIENT:
+        return { 
+          ...base, 
+          dateOfBirth: additionalData.dateOfBirth, 
+          address: additionalData.address,
+          emergencyContact: additionalData.emergencyContact || '', 
+          bloodGroup: additionalData.bloodGroup || '', 
+          allergies: additionalData.allergies || [] 
+        };
+      case USER_ROLES.DOCTOR:
+        return { 
+          ...base, 
+          licenseNumber: additionalData.licenseNumber, 
+          specialization: additionalData.specialization,
+          experience: additionalData.experience || 0, 
+          qualification: additionalData.qualification || '', 
+          workingHours: additionalData.workingHours || {} 
+        };
+      case USER_ROLES.MANAGEMENT:
+        return { 
+          ...base, 
+          department: additionalData.department, 
+          employeeId: additionalData.employeeId,
+          position: additionalData.position || '', 
+          supervisor: additionalData.supervisor || '' 
+        };
+      case USER_ROLES.ADMIN:
+        return { 
+          ...base, 
+          adminLevel: additionalData.adminLevel || 1, 
+          permissions: additionalData.permissions || [] 
+        };
       default:
         return base;
     }
@@ -223,10 +267,10 @@ class AuthService {
 
   async createRoleSpecificDocument(userId, role, data) {
     const collections = {
-      [ROLES.PATIENT]: 'patients',
-      [ROLES.DOCTOR]: 'doctors',
-      [ROLES.MANAGEMENT]: 'management',
-      [ROLES.ADMIN]: 'admins'
+      [USER_ROLES.PATIENT]: 'patients',
+      [USER_ROLES.DOCTOR]: 'doctors',
+      [USER_ROLES.MANAGEMENT]: 'management',
+      [USER_ROLES.ADMIN]: 'admins'
     };
     const col = collections[role];
     if (col) await firestoreService.addDocument(col, { userId, ...data });
@@ -234,10 +278,10 @@ class AuthService {
 
   async updateRoleSpecificDocument(userId, role, updateData) {
     const collections = {
-      [ROLES.PATIENT]: 'patients',
-      [ROLES.DOCTOR]: 'doctors',
-      [ROLES.MANAGEMENT]: 'management',
-      [ROLES.ADMIN]: 'admins'
+      [USER_ROLES.PATIENT]: 'patients',
+      [USER_ROLES.DOCTOR]: 'doctors',
+      [USER_ROLES.MANAGEMENT]: 'management',
+      [USER_ROLES.ADMIN]: 'admins'
     };
     const col = collections[role];
     if (col) {
@@ -263,7 +307,7 @@ class AuthService {
 
   async notifyAdminForApproval(user) {
     try {
-      const admins = await firestoreService.getUsersByRole(ROLES.ADMIN);
+      const admins = await firestoreService.getUsersByRole(USER_ROLES.ADMIN);
       if (admins.success && admins.data.length > 0) {
         const notifications = admins.data.map(admin => ({
           userId: admin.id,

@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, User, Mail, Lock, UserCheck, Stethoscope, Settings, Shield } from 'lucide-react';
+import { Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import authService from '../../services/api/authService'; // Adjust the import based on your project structure
 
 const Registration = ({ onNavigate }) => {
   const [formData, setFormData] = useState({
@@ -58,13 +61,47 @@ const Registration = ({ onNavigate }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    setLoading(true);
-    
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!validateForm()) return;
+
+  setLoading(true);
+  setErrors({});
+
+  try {
+    const result = await authService.register({
+      displayName: formData.name,
+      email: formData.email,
+      password: formData.password,
+      role: formData.role,
+      phoneNumber: formData.phone,
+      address: formData.address,
+      specialization: formData.specialization,
+      licenseNumber: formData.licenseNumber,
+      employeeId: formData.employeeId,
+      department: formData.department,
+      adminCode: formData.role === 'admin' ? 'DEFAULT_ADMIN_CODE' : undefined // optional
+    });
+
+    if (!result.success) {
+      setErrors({ general: result.error || 'Registration failed' });
+    } else {
+      console.log('✅ Registration result:', result);
+      setSuccess(true);
+      setTimeout(() => {
+        if (onNavigate) onNavigate('/login');
+      }, 3000);
+    }
+  } catch (err) {
+    console.error('❌ Registration error:', err);
+    setErrors({ general: err.message || 'Unexpected error' });
+  }
+
+  setLoading(false);
+};
+
+  const simulateRegistration = async () => {
     try {
       // Simulate Firebase operations for demo
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -108,7 +145,7 @@ const Registration = ({ onNavigate }) => {
       
       // Auto-redirect after 3 seconds
       setTimeout(() => {
-        if (onNavigate) onNavigate('login');
+        if (onNavigate) onNavigate('/login');
       }, 3000);
       
     } catch (error) {
@@ -118,6 +155,7 @@ const Registration = ({ onNavigate }) => {
     
     setLoading(false);
   };
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -247,7 +285,7 @@ const Registration = ({ onNavigate }) => {
               You will receive an email once your account is approved.
             </p>
             <button
-              onClick={() => onNavigate && onNavigate('login')}
+                onClick={() => navigate('/login')}
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors"
             >
               Go to Login
@@ -465,7 +503,7 @@ const Registration = ({ onNavigate }) => {
               Already have an account?{' '}
               <button
                 type="button"
-                onClick={() =>  navigate('/login')}
+                onClick={() => onNavigate('/login')}
                 className="font-medium text-blue-600 hover:text-blue-500"
               >
                 Sign in here
