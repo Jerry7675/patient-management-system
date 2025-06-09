@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import authService from '../../services/api/authService'; // Adjust the import based on your project structure
 
 const Registration = ({ onNavigate }) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -503,7 +504,7 @@ const handleSubmit = async (e) => {
               Already have an account?{' '}
               <button
                 type="button"
-                onClick={() => onNavigate('/login')}
+                onClick={() => navigate('/login')}
                 className="font-medium text-blue-600 hover:text-blue-500"
               >
                 Sign in here
