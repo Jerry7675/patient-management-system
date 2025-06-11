@@ -37,6 +37,15 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   };
+   const login = (user) => {
+  setCurrentUser(user);
+  setUserData({
+    role: user.role,
+    status: user.status,
+    
+  });
+};
+
 
   const signin = async (email, password) => {
     try {
@@ -131,6 +140,7 @@ return (
       forgotPassword,
       clearError,
       hasRole,
+      login,
       isVerified
     }}
   >

@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../services/firebase/config';
-import { errorHandler } from '../../utils/errorHandler';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Login = ({ onLogin }) => {
   const navigate = useNavigate();
+  const { signin, userData } = useAuth(); // ✅ Hook called at top level
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     rememberMe: false,
   });
+
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -37,32 +37,13 @@ const Login = ({ onLogin }) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    setLoading(true);
-    setErrors({});
-    const auth = getAuth();
-
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      );
+      setLoading(true);
+      const result = await signin(formData.email, formData.password); // ✅ From context
 
-      const user = userCredential.user;
+      const { user } = result;
 
-      // Fetch user info from Firestore
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDocSnap = await getDoc(userDocRef);
-
-      if (!userDocSnap.exists()) {
-        setErrors({ general: 'No profile found for this user.' });
-        setLoading(false);
-        return;
-      }
-
-      const userData = userDocSnap.data();
-
-      if (!userData.isVerified) {
+      if (!userData?.status || userData.status !== 'verified') {
         setErrors({
           general: 'Your account is pending admin verification. Please wait for approval.',
         });
@@ -70,23 +51,7 @@ const Login = ({ onLogin }) => {
         return;
       }
 
-      const loginData = {
-        user: {
-          uid: user.uid,
-          email: user.email,
-          name: userData.name,
-          role: userData.role,
-          isVerified: userData.isVerified,
-          specialization: userData.specialization || null,
-          department: userData.department || null,
-        },
-        timestamp: new Date(),
-      };
-
-      if (onLogin) {
-        onLogin(loginData.user);
-      }
-
+      // Navigate based on role
       const dashboardRoutes = {
         patient: 'patient/dashboard',
         doctor: 'doctor/dashboard',
@@ -94,15 +59,14 @@ const Login = ({ onLogin }) => {
         admin: 'admin/dashboard',
       };
 
-      const rolePath = dashboardRoutes[userData.role];
+      const rolePath = dashboardRoutes[userData?.role];
       if (rolePath) {
         navigate(`/${rolePath}`);
       } else {
         setErrors({ general: 'Unknown role. Please contact support.' });
       }
     } catch (error) {
-      const handledError = errorHandler.handle(error);
-      setErrors({ general: handledError.error.message });
+      setErrors({ general: error.message });
     } finally {
       setLoading(false);
     }
@@ -151,8 +115,6 @@ const Login = ({ onLogin }) => {
                 type="email"
                 name="email"
                 id="email"
-                aria-invalid={errors.email ? 'true' : 'false'}
-                aria-describedby={errors.email ? 'email-error' : undefined}
                 className={`pl-10 pr-4 py-2 block w-full border ${
                   errors.email ? 'border-red-500' : 'border-gray-300'
                 } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
@@ -162,9 +124,7 @@ const Login = ({ onLogin }) => {
               />
             </div>
             {errors.email && (
-              <p id="email-error" className="text-red-500 text-xs mt-1">
-                {errors.email}
-              </p>
+              <p className="text-red-500 text-xs mt-1">{errors.email}</p>
             )}
           </div>
 
@@ -180,8 +140,6 @@ const Login = ({ onLogin }) => {
                 type={showPassword ? 'text' : 'password'}
                 name="password"
                 id="password"
-                aria-invalid={errors.password ? 'true' : 'false'}
-                aria-describedby={errors.password ? 'password-error' : undefined}
                 className={`pl-10 pr-10 py-2 block w-full border ${
                   errors.password ? 'border-red-500' : 'border-gray-300'
                 } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
@@ -191,17 +149,14 @@ const Login = ({ onLogin }) => {
               />
               <button
                 type="button"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             {errors.password && (
-              <p id="password-error" className="text-red-500 text-xs mt-1">
-                {errors.password}
-              </p>
+              <p className="text-red-500 text-xs mt-1">{errors.password}</p>
             )}
           </div>
 
@@ -215,7 +170,7 @@ const Login = ({ onLogin }) => {
                 checked={formData.rememberMe}
                 onChange={handleInputChange}
               />
-              <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-900 select-none">
+              <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-900">
                 Remember me
               </label>
             </div>
@@ -223,7 +178,7 @@ const Login = ({ onLogin }) => {
             <button
               type="button"
               onClick={() => navigate('/forgot-password')}
-              className="text-sm text-blue-600 hover:underline focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="text-sm text-blue-600 hover:underline"
             >
               Forgot password?
             </button>
@@ -232,7 +187,7 @@ const Login = ({ onLogin }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition duration-200 disabled:opacity-50"
           >
             {loading ? 'Logging in...' : 'Login'}
           </button>
@@ -244,7 +199,7 @@ const Login = ({ onLogin }) => {
             <button
               type="button"
               onClick={() => navigate('/register')}
-              className="text-blue-600 font-medium hover:underline focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="text-blue-600 font-medium hover:underline"
             >
               Create account
             </button>
