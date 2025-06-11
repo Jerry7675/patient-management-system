@@ -1,17 +1,19 @@
-import { 
+// src/services/firebase/auth.js
+import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   sendPasswordResetEmail,
-  updateProfile,
+  updateProfile as firebaseUpdateProfile,
   onAuthStateChanged,
   sendEmailVerification,
   updatePassword,
   reauthenticateWithCredential,
   EmailAuthProvider
 } from 'firebase/auth';
+
 import { auth } from './config';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from './firestore';
 
 class FirebaseAuth {
@@ -20,30 +22,43 @@ class FirebaseAuth {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      
-      // Update display name if provided
-      if (userData.displayName) {
-        await updateProfile(user, {
-          displayName: userData.displayName
-        });
-      }
 
-      // Send email verification
-      await sendEmailVerification(user);
-
-      return { 
-        success: true, 
+      return {
+        success: true,
         user: {
           uid: user.uid,
           email: user.email,
-          displayName: user.displayName,
-          emailVerified: user.emailVerified
-        }
+          displayName: user.displayName || '',
+          emailVerified: user.emailVerified,
+          metadata: {
+            createdAt: user.metadata.creationTime,
+            lastLoginAt: user.metadata.lastSignInTime
+          }
+        },
+        error: null
       };
     } catch (error) {
-      console.error('SignUp error:', error);
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        user: null,
+        error: this._mapAuthError(error)
+      };
     }
+  }
+
+  // Map Firebase Auth errors to user-friendly messages
+  _mapAuthError(error) {
+    const errorMap = {
+      'auth/email-already-in-use': 'Email already in use',
+      'auth/invalid-email': 'Invalid email address',
+      'auth/user-not-found': 'User not found',
+      'auth/wrong-password': 'Incorrect password',
+      'auth/weak-password': 'Password should be at least 6 characters',
+      'auth/missing-password': 'Password is required',
+      'auth/too-many-requests': 'Too many login attempts. Please try again later.',
+      'auth/network-request-failed': 'Network error. Check your connection.',
+    };
+    return errorMap[error.code] || error.message;
   }
 
   // Sign in user
@@ -52,22 +67,21 @@ class FirebaseAuth {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Get user data from Firestore
       const userData = await this.getUserData(user.uid);
-      
-      return { 
-        success: true, 
+
+      return {
+        success: true,
         user: {
           uid: user.uid,
           email: user.email,
-          displayName: user.displayName,
+          displayName: user.displayName || '',
           emailVerified: user.emailVerified,
           ...userData
         }
       };
     } catch (error) {
       console.error('SignIn error:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: this._mapAuthError(error) };
     }
   }
 
@@ -89,7 +103,7 @@ class FirebaseAuth {
       return { success: true };
     } catch (error) {
       console.error('Password reset error:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: this._mapAuthError(error) };
     }
   }
 
@@ -97,20 +111,16 @@ class FirebaseAuth {
   async updateUserPassword(currentPassword, newPassword) {
     try {
       const user = auth.currentUser;
-      if (!user) {
-        return { success: false, error: 'No user logged in' };
-      }
+      if (!user) return { success: false, error: 'No user logged in' };
 
-      // Re-authenticate user
       const credential = EmailAuthProvider.credential(user.email, currentPassword);
       await reauthenticateWithCredential(user, credential);
-
-      // Update password
       await updatePassword(user, newPassword);
+
       return { success: true };
     } catch (error) {
       console.error('Password update error:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: this._mapAuthError(error) };
     }
   }
 
@@ -128,10 +138,7 @@ class FirebaseAuth {
   async getUserData(uid) {
     try {
       const userDoc = await getDoc(doc(db, 'users', uid));
-      if (userDoc.exists()) {
-        return userDoc.data();
-      }
-      return {};
+      return userDoc.exists() ? userDoc.data() : {};
     } catch (error) {
       console.error('Error getting user data:', error);
       return {};
@@ -143,14 +150,14 @@ class FirebaseAuth {
     return onAuthStateChanged(auth, callback);
   }
 
-  // Update user profile in Firebase Auth
+  // Update Firebase Auth profile
   async updateProfile(user, profileData) {
     try {
-      await updateProfile(user, profileData);
+      await firebaseUpdateProfile(user, profileData);
       return { success: true };
     } catch (error) {
       console.error('Profile update error:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: this._mapAuthError(error) };
     }
   }
 
@@ -158,20 +165,17 @@ class FirebaseAuth {
   async sendEmailVerification() {
     try {
       const user = auth.currentUser;
-      if (!user) {
-        return { success: false, error: 'No user logged in' };
-      }
-      
+      if (!user) return { success: false, error: 'No user logged in' };
+
       await sendEmailVerification(user);
       return { success: true };
     } catch (error) {
       console.error('Email verification error:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: this._mapAuthError(error) };
     }
   }
 }
 
-// Create instance and export both instance and class
 const firebaseAuth = new FirebaseAuth();
 
 export default firebaseAuth;

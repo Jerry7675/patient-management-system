@@ -3,7 +3,7 @@ import firebaseAuth from '../firebase/auth';
 import firestoreService from '../firebase/firestore';
 import { USER_ROLES, RECORD_STATUS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../../utils/constants';
 
-// Define USER_STATUS since it's not in your constants
+// MISSING CONSTANT ADDED
 const USER_STATUS = {
   PENDING: 'pending',
   APPROVED: 'approved',
@@ -12,15 +12,18 @@ const USER_STATUS = {
 };
 
 class AuthService {
-  // Login with role-specific validation
   async login(email, password, expectedRole = null) {
     try {
       const result = await firebaseAuth.signIn(email, password);
-
       if (!result.success) return result;
       const user = result.user;
 
-      // Check admin verification
+      // ✅ FIX: null/undefined safety check
+      if (!user || !user.uid || !user.role) {
+        return { success: false, error: 'Invalid user credentials' };
+      }
+
+      // Role/status validation
       if (user.status !== USER_STATUS.APPROVED && user.role !== USER_ROLES.ADMIN) {
         await firebaseAuth.signOut();
         return {
@@ -29,7 +32,6 @@ class AuthService {
         };
       }
 
-      // Role check
       if (expectedRole && user.role !== expectedRole) {
         await firebaseAuth.signOut();
         return {
@@ -38,92 +40,70 @@ class AuthService {
         };
       }
 
-      // Update login info
       await firestoreService.updateDocument('users', user.uid, {
         lastLogin: new Date(),
         isOnline: true
       });
 
-      return { success: true, user, message: 'Login successful' };
+      return { success: true, user, message: SUCCESS_MESSAGES.LOGIN_SUCCESS || 'Login successful' };
     } catch (error) {
       return { success: false, error: error.message };
     }
   }
 
-  // Register user + Firestore user doc
-async register(userData) {
-  try {
-    const { email, password, role, ...additionalData } = userData;
-
+  async register(userData) {
     const validation = this.validateRegistrationData(userData);
     if (!validation.isValid) {
-      return { success: false, error: validation.errors.join(', ') };
+      return { success: false, error: validation.errors, user: null };
     }
 
-    const existingUser = await this.checkEmailExists(email);
-    if (existingUser) {
-      return { success: false, error: 'An account with this email already exists' };
-    }
-
-    const roleSpecificData = this.prepareRoleSpecificData(role, additionalData);
-
-    const result = await firebaseAuth.signUp(email, password, {
-      ...roleSpecificData,
-      role,
-      status: role === USER_ROLES.ADMIN ? USER_STATUS.APPROVED : USER_STATUS.PENDING,
-      emailVerified: false,
-      profileComplete: false
-    });
-
-    if (!result.success) return result;
-    const firebaseUser = result.user;
-
-    // ✅ Firestore user profile data
-    const userProfile = {
-      uid: firebaseUser.uid,
-      email: firebaseUser.email,
-      displayName: additionalData.displayName || '',
-      role,
-      status: role === USER_ROLES.ADMIN ? USER_STATUS.APPROVED : USER_STATUS.PENDING,
-      emailVerified: false,
-      profileComplete: false,
-      createdAt: new Date()
-    };
-
-    console.log("Attempting Firestore write...:");
-    
-    // ✅ Write to Firestore and ensure it's successful
-    const firestoreResult = await firestoreService.setDocument('users', firebaseUser.uid, userProfile);
-    console.log("firestore user write result:", firestoreResult);
-
-    if (!firestoreResult.success) {
-      await firebaseAuth.signOut(); // optional cleanup
+    if (await this.checkEmailExists(userData.email)) {
       return {
         success: false,
-        error: 'Failed to save user profile. Please try again.'
+        error: ['Email already registered'],
+        user: null
       };
     }
 
-    // Role-specific doc
-    await this.createRoleSpecificDocument(firebaseUser.uid, role, roleSpecificData);
+    const authResult = await firebaseAuth.signUp(
+      userData.email,
+      userData.password,
+      { displayName: userData.displayName || userData.name }
+    );
 
-    // Notify admin
-    if (role !== USER_ROLES.ADMIN) {
-      await this.notifyAdminForApproval(firebaseUser);
+    if (!authResult.success) return authResult;
+
+    const userProfile = {
+      uid: authResult.user.uid,
+      email: authResult.user.email,
+      name: userData.name,
+      displayName: userData.displayName || userData.name,
+      role: userData.role,
+      status: userData.role === USER_ROLES.PATIENT ? USER_STATUS.APPROVED : USER_STATUS.PENDING,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const profileResult = await firestoreService.setDocument('users', authResult.user.uid, userProfile);
+
+    if (!profileResult.success) {
+      await firebaseAuth.deleteUser(authResult.user.uid);
+      return profileResult;
     }
+
+    // ✅ FIX: Ensure role-specific document is created
+    const roleData = this.prepareRoleSpecificData(userData.role, userData);
+    await this.createRoleSpecificDocument(authResult.user.uid, userData.role, roleData);
+
+    // ✅ FIX: Notify admins (optional but defined)
+    await this.notifyAdminForApproval(userProfile);
 
     return {
       success: true,
-      user: firebaseUser,
-      message: role === USER_ROLES.ADMIN
-        ? 'Admin account created successfully'
-        : 'Registration successful. Please wait for admin approval.'
+      user: { ...authResult.user, ...userProfile },
+      error: null
     };
-  } catch (error) {
-    return { success: false, error: error.message };
   }
-}
-
 
   async logout() {
     try {
@@ -229,36 +209,36 @@ async register(userData) {
 
     switch (role) {
       case USER_ROLES.PATIENT:
-        return { 
-          ...base, 
-          dateOfBirth: additionalData.dateOfBirth, 
+        return {
+          ...base,
+          dateOfBirth: additionalData.dateOfBirth,
           address: additionalData.address,
-          emergencyContact: additionalData.emergencyContact || '', 
-          bloodGroup: additionalData.bloodGroup || '', 
-          allergies: additionalData.allergies || [] 
+          emergencyContact: additionalData.emergencyContact || '',
+          bloodGroup: additionalData.bloodGroup || '',
+          allergies: additionalData.allergies || []
         };
       case USER_ROLES.DOCTOR:
-        return { 
-          ...base, 
-          licenseNumber: additionalData.licenseNumber, 
+        return {
+          ...base,
+          licenseNumber: additionalData.licenseNumber,
           specialization: additionalData.specialization,
-          experience: additionalData.experience || 0, 
-          qualification: additionalData.qualification || '', 
-          workingHours: additionalData.workingHours || {} 
+          experience: additionalData.experience || 0,
+          qualification: additionalData.qualification || '',
+          workingHours: additionalData.workingHours || {}
         };
       case USER_ROLES.MANAGEMENT:
-        return { 
-          ...base, 
-          department: additionalData.department, 
+        return {
+          ...base,
+          department: additionalData.department,
           employeeId: additionalData.employeeId,
-          position: additionalData.position || '', 
-          supervisor: additionalData.supervisor || '' 
+          position: additionalData.position || '',
+          supervisor: additionalData.supervisor || ''
         };
       case USER_ROLES.ADMIN:
-        return { 
-          ...base, 
-          adminLevel: additionalData.adminLevel || 1, 
-          permissions: additionalData.permissions || [] 
+        return {
+          ...base,
+          adminLevel: additionalData.adminLevel || 1,
+          permissions: additionalData.permissions || []
         };
       default:
         return base;

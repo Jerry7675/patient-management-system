@@ -5,7 +5,7 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   sendPasswordResetEmail,
-  updateProfile,
+  updateProfile as firebaseUpdateProfile,
   onAuthStateChanged
 } from 'firebase/auth';
 import { 
@@ -40,6 +40,12 @@ export const authService = {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
+      // Check if email is verified
+      if (!user.emailVerified) {
+        await signOut(auth);
+        throw new Error('Please verify your email before logging in.');
+      }
+
       // Get user data from Firestore
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       
@@ -95,7 +101,7 @@ export const authService = {
       
       // Update display name
       if (profileData.name) {
-        await updateProfile(user, {
+        await firebaseUpdateProfile(user, {
           displayName: profileData.name
         });
       }
@@ -139,7 +145,7 @@ export const authService = {
           lastSeen: serverTimestamp()
         });
       }
-      await signOut(auth);
+      return await signOut(auth);
     } catch (error) {
       console.error('Logout error:', error);
       throw error;
@@ -169,8 +175,8 @@ export const authService = {
     }
   },
 
-  // Update user profile
-  async updateProfile(userId, updates) {
+  // Update user profile (renamed to avoid conflict)
+  async updateUserProfile(userId, updates) {
     try {
       const userRef = doc(db, 'users', userId);
       await updateDoc(userRef, {
@@ -180,7 +186,7 @@ export const authService = {
       
       // Update Firebase Auth profile if name changed
       if (updates.name && auth.currentUser) {
-        await updateProfile(auth.currentUser, {
+        await firebaseUpdateProfile(auth.currentUser, {
           displayName: updates.name
         });
       }
@@ -217,17 +223,15 @@ export const authService = {
     try {
       switch (role) {
         case 'patient':
-          // Create patient-specific collections
           await setDoc(doc(db, 'patients', userId), {
             userId: userId,
             medicalRecords: [],
             correctionRequests: [],
             createdAt: serverTimestamp()
-          });
+          }, { merge: true });
           break;
           
         case 'doctor':
-          // Create doctor-specific collections
           await setDoc(doc(db, 'doctors', userId), {
             userId: userId,
             specialization: '',
@@ -235,27 +239,25 @@ export const authService = {
             verifiedRecords: [],
             pendingVerifications: [],
             createdAt: serverTimestamp()
-          });
+          }, { merge: true });
           break;
           
         case 'management':
-          // Create management-specific collections
           await setDoc(doc(db, 'management', userId), {
             userId: userId,
             department: '',
             recordsEntered: [],
             createdAt: serverTimestamp()
-          });
+          }, { merge: true });
           break;
           
         case 'admin':
-          // Create admin-specific collections
           await setDoc(doc(db, 'admins', userId), {
             userId: userId,
             permissions: ['user_verification', 'system_overview'],
             verifiedUsers: [],
             createdAt: serverTimestamp()
-          });
+          }, { merge: true });
           break;
       }
     } catch (error) {
@@ -278,21 +280,16 @@ export const authService = {
     }
   },
 
-  // Get users pending verification
+  // Get users pending verification (Firestore doesn't support !=, so filter client side)
   async getPendingVerifications() {
     try {
       const usersRef = collection(db, 'users');
-      const q = query(
-        usersRef, 
-        where('isVerified', '==', false),
-        where('role', '!=', 'patient')
-      );
+      const q = query(usersRef, where('isVerified', '==', false));
       const querySnapshot = await getDocs(q);
-      
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+
+      return querySnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(user => user.role !== 'patient');
     } catch (error) {
       console.error('Get pending verifications error:', error);
       return [];
@@ -314,13 +311,14 @@ export const authService = {
   // Generate OTP for patient verification
   async generatePatientOTP(patientEmail) {
     try {
+      // Replace unsafe chars for Firestore doc ID
+      const safeDocId = patientEmail.replace(/[^\w.-]/g, '_');
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
       
-      // Store OTP in database
-      await setDoc(doc(db, 'otps', patientEmail), {
-        otp: otp,
-        expiresAt: expiresAt,
+      await setDoc(doc(db, 'otps', safeDocId), {
+        otp,
+        expiresAt,
         isUsed: false,
         createdAt: serverTimestamp()
       });
@@ -335,7 +333,8 @@ export const authService = {
   // Verify patient OTP
   async verifyPatientOTP(patientEmail, enteredOTP) {
     try {
-      const otpDoc = await getDoc(doc(db, 'otps', patientEmail));
+      const safeDocId = patientEmail.replace(/[^\w.-]/g, '_');
+      const otpDoc = await getDoc(doc(db, 'otps', safeDocId));
       
       if (!otpDoc.exists()) {
         throw new Error('OTP not found');
@@ -356,7 +355,7 @@ export const authService = {
       }
       
       // Mark OTP as used
-      await updateDoc(doc(db, 'otps', patientEmail), {
+      await updateDoc(doc(db, 'otps', safeDocId), {
         isUsed: true,
         usedAt: serverTimestamp()
       });

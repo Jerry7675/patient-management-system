@@ -3,7 +3,8 @@ import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from "../../services/firebase/firestore"; 
+import { db } from '../../services/firebase/config';
+import { errorHandler } from '../../utils/errorHandler';
 
 const Login = ({ onLogin }) => {
   const navigate = useNavigate();
@@ -55,6 +56,7 @@ const Login = ({ onLogin }) => {
 
       if (!userDocSnap.exists()) {
         setErrors({ general: 'No profile found for this user.' });
+        setLoading(false);
         return;
       }
 
@@ -64,6 +66,7 @@ const Login = ({ onLogin }) => {
         setErrors({
           general: 'Your account is pending admin verification. Please wait for approval.',
         });
+        setLoading(false);
         return;
       }
 
@@ -83,37 +86,23 @@ const Login = ({ onLogin }) => {
       if (onLogin) {
         onLogin(loginData.user);
       }
-      console.log("Logged in user:", loginData.user);
-      console.log("Role:", userData.role);
-     
-
 
       const dashboardRoutes = {
-        patient: 'patient-dashboard',
-        doctor: 'doctor-dashboard',
-        management: 'management-dashboard',
-        admin: 'admin-dashboard',
+        patient: 'patient/dashboard',
+        doctor: 'doctor/dashboard',
+        management: 'management/dashboard',
+        admin: 'admin/dashboard',
       };
 
       const rolePath = dashboardRoutes[userData.role];
-       console.log("Navigating to:", `/${rolePath}`);
       if (rolePath) {
         navigate(`/${rolePath}`);
       } else {
         setErrors({ general: 'Unknown role. Please contact support.' });
       }
     } catch (error) {
-      console.error('Login error:', error);
-      if (
-        error.code === 'auth/user-not-found' ||
-        error.code === 'auth/invalid-email'
-      ) {
-        setErrors({ general: 'No account found with this email address.' });
-      } else if (error.code === 'auth/wrong-password') {
-        setErrors({ general: 'Invalid password. Please try again.' });
-      } else {
-        setErrors({ general: 'Login failed. Please try again later.' });
-      }
+      const handledError = errorHandler.handle(error);
+      setErrors({ general: handledError.error.message });
     } finally {
       setLoading(false);
     }
@@ -125,6 +114,7 @@ const Login = ({ onLogin }) => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
+
     if (errors[name]) {
       setErrors((prev) => ({
         ...prev,
@@ -139,33 +129,43 @@ const Login = ({ onLogin }) => {
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">Login</h2>
 
         {errors.general && (
-          <div className="bg-red-100 text-red-700 p-2 rounded mb-4 flex items-center text-sm">
+          <div
+            role="alert"
+            className="bg-red-100 text-red-700 p-2 rounded mb-4 flex items-center text-sm"
+          >
             <AlertCircle className="w-4 h-4 mr-2" />
             {errors.general}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
               Email
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 pointer-events-none">
                 <Mail className="w-4 h-4" />
               </span>
               <input
                 type="email"
                 name="email"
                 id="email"
+                aria-invalid={errors.email ? 'true' : 'false'}
+                aria-describedby={errors.email ? 'email-error' : undefined}
                 className={`pl-10 pr-4 py-2 block w-full border ${
                   errors.email ? 'border-red-500' : 'border-gray-300'
                 } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 value={formData.email}
                 onChange={handleInputChange}
+                autoComplete="email"
               />
             </div>
-            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+            {errors.email && (
+              <p id="email-error" className="text-red-500 text-xs mt-1">
+                {errors.email}
+              </p>
+            )}
           </div>
 
           <div>
@@ -173,27 +173,36 @@ const Login = ({ onLogin }) => {
               Password
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 pointer-events-none">
                 <Lock className="w-4 h-4" />
               </span>
               <input
                 type={showPassword ? 'text' : 'password'}
                 name="password"
                 id="password"
+                aria-invalid={errors.password ? 'true' : 'false'}
+                aria-describedby={errors.password ? 'password-error' : undefined}
                 className={`pl-10 pr-10 py-2 block w-full border ${
                   errors.password ? 'border-red-500' : 'border-gray-300'
                 } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 value={formData.password}
                 onChange={handleInputChange}
+                autoComplete="current-password"
               />
-              <span
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 cursor-pointer"
+              <button
+                type="button"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
                 onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </span>
+              </button>
             </div>
-            {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+            {errors.password && (
+              <p id="password-error" className="text-red-500 text-xs mt-1">
+                {errors.password}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center justify-between">
@@ -206,7 +215,7 @@ const Login = ({ onLogin }) => {
                 checked={formData.rememberMe}
                 onChange={handleInputChange}
               />
-              <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-900">
+              <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-900 select-none">
                 Remember me
               </label>
             </div>
@@ -214,7 +223,7 @@ const Login = ({ onLogin }) => {
             <button
               type="button"
               onClick={() => navigate('/forgot-password')}
-              className="text-sm text-blue-600 hover:underline"
+              className="text-sm text-blue-600 hover:underline focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               Forgot password?
             </button>
@@ -223,7 +232,7 @@ const Login = ({ onLogin }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition duration-200"
+            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Logging in...' : 'Login'}
           </button>
@@ -235,7 +244,7 @@ const Login = ({ onLogin }) => {
             <button
               type="button"
               onClick={() => navigate('/register')}
-              className="text-blue-600 font-medium hover:underline"
+              className="text-blue-600 font-medium hover:underline focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               Create account
             </button>

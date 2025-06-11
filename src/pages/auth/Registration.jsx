@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, User, Mail, Lock, UserCheck, Stethoscope, Settings, Shield } from 'lucide-react';
-import { Navigate } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
-import authService from '../../services/api/authService'; // Adjust the import based on your project structure
+import { authService } from '../../hooks/useAuth';
 
-const Registration = ({ onNavigate }) => {
+const Registration = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
@@ -14,12 +13,13 @@ const Registration = ({ onNavigate }) => {
     role: 'patient',
     phone: '',
     address: '',
-    specialization: '', // for doctors
-    licenseNumber: '', // for doctors
-    employeeId: '', // for management
-    department: '' // for management
+    dob: '',
+    specialization: '',
+    licenseNumber: '',
+    employeeId: '',
+    department: ''
   });
-  
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -27,150 +27,91 @@ const Registration = ({ onNavigate }) => {
   const [success, setSuccess] = useState(false);
 
   const roleOptions = [
-    { value: 'patient', label: 'Patient', icon: User, color: 'bg-blue-500' },
-    { value: 'doctor', label: 'Doctor', icon: Stethoscope, color: 'bg-green-500' },
-    { value: 'management', label: 'Management', icon: Settings, color: 'bg-orange-500' },
-    { value: 'admin', label: 'Admin', icon: Shield, color: 'bg-red-500' }
+    { value: 'patient', label: 'Patient', icon: User, color: 'blue' },
+    { value: 'doctor', label: 'Doctor', icon: Stethoscope, color: 'green' },
+    { value: 'management', label: 'Management', icon: Settings, color: 'orange' },
+    { value: 'admin', label: 'Admin', icon: Shield, color: 'red' }
   ];
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.email.trim()) newErrors.email = 'Email is required';
-    if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
+
     if (!formData.password) newErrors.password = 'Password is required';
-    if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
+    else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+
+    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+
+    if (formData.dob && new Date(formData.dob) > new Date()) newErrors.dob = 'Date of birth cannot be in the future';
+
     if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
-    if (!/^\+?[\d\s-()]+$/.test(formData.phone)) newErrors.phone = 'Invalid phone number';
-    
-    // Role-specific validations
+    else if (!/^\+?[\d\s-()]+$/.test(formData.phone)) newErrors.phone = 'Invalid phone number';
+
     if (formData.role === 'doctor') {
       if (!formData.specialization.trim()) newErrors.specialization = 'Specialization is required';
       if (!formData.licenseNumber.trim()) newErrors.licenseNumber = 'License number is required';
     }
-    
+
     if (formData.role === 'management') {
       if (!formData.employeeId.trim()) newErrors.employeeId = 'Employee ID is required';
       if (!formData.department.trim()) newErrors.department = 'Department is required';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  if (!validateForm()) return;
+    if (!validateForm()) return;
 
-  setLoading(true);
-  setErrors({});
+    setLoading(true);
+    setErrors({});
+    setSuccess(false);
 
-  try {
-    const result = await authService.register({
-      displayName: formData.name,
-      email: formData.email,
-      password: formData.password,
-      role: formData.role,
-      phoneNumber: formData.phone,
-      address: formData.address,
-      specialization: formData.specialization,
-      licenseNumber: formData.licenseNumber,
-      employeeId: formData.employeeId,
-      department: formData.department,
-      adminCode: formData.role === 'admin' ? 'DEFAULT_ADMIN_CODE' : undefined // optional
-    });
-
-    if (!result.success) {
-      setErrors({ general: result.error || 'Registration failed' });
-    } else {
-      console.log('✅ Registration result:', result);
-      setSuccess(true);
-      setTimeout(() => {
-        if (onNavigate) onNavigate('/login');
-      }, 3000);
-    }
-  } catch (err) {
-    console.error('❌ Registration error:', err);
-    setErrors({ general: err.message || 'Unexpected error' });
-  }
-
-  setLoading(false);
-};
-
-  const simulateRegistration = async () => {
     try {
-      // Simulate Firebase operations for demo
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // In real implementation, this would:
-      // 1. Create user with Firebase Auth
-      // 2. Save user data to Firestore
-      // 3. Create verification request for admin
-      
-      const userData = {
-        uid: 'demo-' + Date.now(),
-        name: formData.name,
+      const result = await authService.register({
+        displayName: formData.name,
         email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
+        password: formData.password,
         role: formData.role,
-        isVerified: false,
-        createdAt: new Date(),
-        lastLogin: null
-      };
-      
-      // Add role-specific data
-      if (formData.role === 'doctor') {
-        userData.specialization = formData.specialization;
-        userData.licenseNumber = formData.licenseNumber;
-        userData.patientsCount = 0;
-        userData.verificationsCount = 0;
-      } else if (formData.role === 'management') {
-        userData.employeeId = formData.employeeId;
-        userData.department = formData.department;
-        userData.recordsEntered = 0;
-      } else if (formData.role === 'patient') {
-        userData.medicalHistory = [];
-        userData.currentMedications = [];
-        userData.emergencyContact = '';
+        phoneNumber: formData.phone,
+        address: formData.address,
+        dob: formData.dob,
+        specialization: formData.specialization,
+        licenseNumber: formData.licenseNumber,
+        employeeId: formData.employeeId,
+        department: formData.department,
+        adminCode: formData.role === 'admin' ? 'DEFAULT_ADMIN_CODE' : undefined
+      });
+
+      if (!result.success) {
+        setErrors({ general: result.error || 'Registration failed' });
+        setLoading(false);
+        return;
       }
-      
-      console.log('User registration data:', userData);
-      
+
       setSuccess(true);
-      
-      // Auto-redirect after 3 seconds
-      setTimeout(() => {
-        if (onNavigate) onNavigate('/login');
-      }, 3000);
-      
-    } catch (error) {
-      console.error('Registration error:', error);
-      setErrors({ general: error.message || 'Registration failed. Please try again.' });
+      setTimeout(() => navigate('/login'), 3000);
+
+    } catch (err) {
+      console.error('❌ Registration error:', err);
+      setErrors({ general: err.message || 'Unexpected error' });
     }
-    
+
     setLoading(false);
   };
 
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    // Clear error for this field
+    setFormData(prev => ({ ...prev, [name]: value }));
+
     if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
@@ -193,11 +134,9 @@ const handleSubmit = async (e) => {
                 }`}
                 placeholder="e.g., Cardiology, Pediatrics"
               />
-              {errors.specialization && (
-                <p className="text-red-500 text-sm mt-1">{errors.specialization}</p>
-              )}
+              {errors.specialization && <p className="text-red-500 text-sm mt-1">{errors.specialization}</p>}
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Medical License Number *
@@ -212,13 +151,11 @@ const handleSubmit = async (e) => {
                 }`}
                 placeholder="Medical license number"
               />
-              {errors.licenseNumber && (
-                <p className="text-red-500 text-sm mt-1">{errors.licenseNumber}</p>
-              )}
+              {errors.licenseNumber && <p className="text-red-500 text-sm mt-1">{errors.licenseNumber}</p>}
             </div>
           </>
         );
-      
+
       case 'management':
         return (
           <>
@@ -236,11 +173,9 @@ const handleSubmit = async (e) => {
                 }`}
                 placeholder="Employee ID"
               />
-              {errors.employeeId && (
-                <p className="text-red-500 text-sm mt-1">{errors.employeeId}</p>
-              )}
+              {errors.employeeId && <p className="text-red-500 text-sm mt-1">{errors.employeeId}</p>}
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Department *
@@ -260,13 +195,11 @@ const handleSubmit = async (e) => {
                 <option value="pharmacy">Pharmacy</option>
                 <option value="administration">Administration</option>
               </select>
-              {errors.department && (
-                <p className="text-red-500 text-sm mt-1">{errors.department}</p>
-              )}
+              {errors.department && <p className="text-red-500 text-sm mt-1">{errors.department}</p>}
             </div>
           </>
         );
-      
+
       default:
         return null;
     }
@@ -286,14 +219,11 @@ const handleSubmit = async (e) => {
               You will receive an email once your account is approved.
             </p>
             <button
-                onClick={() => navigate('/login')}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+              onClick={() => navigate('/login')}
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               Go to Login
             </button>
-            <p className="text-sm text-gray-500 mt-4">
-              Redirecting to login in 3 seconds...
-            </p>
           </div>
         </div>
       </div>
@@ -303,203 +233,227 @@ const handleSubmit = async (e) => {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create Account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Join our patient management system
+        <div className="text-center">
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Create your account</h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Choose your role and fill in the details below.
           </p>
         </div>
-        
-        <div className="mt-8 space-y-6">
-          {errors.general && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-              {errors.general}
-            </div>
-          )}
-          
-          {/* Role Selection */}
+
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit} noValidate>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Select Your Role *
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {roleOptions.map((option) => {
-                const IconComponent = option.icon;
+            <label className="block text-sm font-medium text-gray-700 mb-2">Select Role *</label>
+            <div className="flex gap-4">
+              {roleOptions.map(({ value, label, icon: Icon, color }) => {
+                // Compose the border and bg classes dynamically for Tailwind
+                const isSelected = formData.role === value;
+                const borderColorClass = isSelected ? `border-${color}-600` : 'border-gray-300';
+                const bgColorClass = isSelected ? `bg-${color}-600` : 'bg-white';
+                const textColorClass = isSelected ? 'text-white' : `text-${color}-600`;
+
+                // Since Tailwind doesn't support dynamic class names directly,
+                // Use a helper function or template literals and classnames library,
+                // But here, we'll hardcode a small map instead:
+
+                const borderColorMap = {
+                  blue: 'border-blue-600',
+                  green: 'border-green-600',
+                  orange: 'border-orange-600',
+                  red: 'border-red-600'
+                };
+
+                const bgColorMap = {
+                  blue: 'bg-blue-600',
+                  green: 'bg-green-600',
+                  orange: 'bg-orange-600',
+                  red: 'bg-red-600'
+                };
+
+                const textColorMap = {
+                  blue: 'text-blue-600',
+                  green: 'text-green-600',
+                  orange: 'text-orange-600',
+                  red: 'text-red-600'
+                };
+
                 return (
-                  <label
-                    key={option.value}
-                    className={`relative flex items-center p-3 cursor-pointer rounded-lg border-2 transition-all ${
-                      formData.role === option.value
-                        ? `border-${option.value === 'patient' ? 'blue' : option.value === 'doctor' ? 'green' : option.value === 'management' ? 'orange' : 'red'}-500 bg-${option.value === 'patient' ? 'blue' : option.value === 'doctor' ? 'green' : option.value === 'management' ? 'orange' : 'red'}-50`
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, role: value }))}
+                    className={`
+                      flex items-center gap-2 px-4 py-2 rounded-lg border-2
+                      ${isSelected ? borderColorMap[color] : 'border-gray-300'}
+                      ${isSelected ? bgColorMap[color] : 'bg-white'}
+                      ${isSelected ? 'text-white' : textColorMap[color]}
+                      focus:outline-none focus:ring-2 focus:ring-offset-1
+                      ${isSelected ? `focus:ring-${color}-400` : 'focus:ring-gray-400'}
+                      transition-colors duration-200
+                    `}
+                    aria-pressed={isSelected}
+                    aria-label={`Select role ${label}`}
                   >
-                    <input
-                      type="radio"
-                      name="role"
-                      value={option.value}
-                      checked={formData.role === option.value}
-                      onChange={handleInputChange}
-                      className="sr-only"
-                    />
-                    <div className={`w-8 h-8 rounded-full ${option.color} flex items-center justify-center mr-3`}>
-                      <IconComponent className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-sm font-medium text-gray-900">
-                      {option.label}
-                    </span>
-                  </label>
+                    <Icon size={18} />
+                    <span>{label}</span>
+                  </button>
                 );
               })}
             </div>
           </div>
-          
-          {/* Basic Information */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name *
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.name ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Enter your full name"
-              />
-              {errors.name && (
-                <p className="text-red-500 text-sm mt-1">{errors.name}</p>
-              )}
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address *
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.email ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Enter your email address"
-              />
-              {errors.email && (
-                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-              )}
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number *
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.phone ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Enter your phone number"
-              />
-              {errors.phone && (
-                <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
-              )}
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Address
-              </label>
-              <textarea
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                rows="3"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter your address"
-              />
-            </div>
-            
-            {/* Role-specific fields */}
-            {renderRoleSpecificFields()}
-            
+
+          {/* Name */}
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              value={formData.name}
+              onChange={handleInputChange}
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                errors.name ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Your full name"
+              required
+            />
+            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+          </div>
+
+          {/* Email */}
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                errors.email ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="you@example.com"
+              required
+            />
+            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+          </div>
+
+          {/* Password */}
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password *
-              </label>
               <input
-                type={showPassword ? 'text' : 'password'}
+                id="password"
                 name="password"
+                type={showPassword ? 'text' : 'password'}
                 value={formData.password}
                 onChange={handleInputChange}
-                className={`w-full px-4 py-3 pr-12 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                   errors.password ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="Create a password"
+                placeholder="Enter password"
+                required
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-9 text-gray-400 hover:text-gray-600"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                onClick={() => setShowPassword(prev => !prev)}
+                className="absolute right-3 top-3 text-gray-600 hover:text-gray-900"
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
-              {errors.password && (
-                <p className="text-red-500 text-sm mt-1">{errors.password}</p>
-              )}
             </div>
-            
+            {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+          </div>
+
+          {/* Confirm Password */}
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">Confirm Password *</label>
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm Password *
-              </label>
               <input
-                type={showConfirmPassword ? 'text' : 'password'}
+                id="confirmPassword"
                 name="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
-                className={`w-full px-4 py-3 pr-12 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                   errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="Confirm your password"
+                placeholder="Re-enter password"
+                required
               />
               <button
                 type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-9 text-gray-400 hover:text-gray-600"
+                aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                onClick={() => setShowConfirmPassword(prev => !prev)}
+                className="absolute right-3 top-3 text-gray-600 hover:text-gray-900"
               >
-                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
-              {errors.confirmPassword && (
-                <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
-              )}
             </div>
+            {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
           </div>
-          
+
+          {/* Phone */}
           <div>
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white ${
-                loading 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-              } transition-colors`}
-            >
-              {loading ? 'Creating Account...' : 'Create Account'}
-            </button>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              value={formData.phone}
+              onChange={handleInputChange}
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                errors.phone ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="+977-9812345678"
+              required
+            />
+            {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
           </div>
-          
-          <div className="text-center">
+
+          {/* Address */}
+          <div>
+            <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">Address</label>
+            <input
+              id="address"
+              name="address"
+              type="text"
+              value={formData.address}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 border-gray-300"
+              placeholder="Your address"
+            />
+          </div>
+
+          {/* DOB */}
+          <div>
+            <label htmlFor="dob" className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
+            <input
+              id="dob"
+              name="dob"
+              type="date"
+              value={formData.dob}
+              onChange={handleInputChange}
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                errors.dob ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {errors.dob && <p className="text-red-500 text-sm mt-1">{errors.dob}</p>}
+          </div>
+
+          {/* Role-specific fields */}
+          {renderRoleSpecificFields()}
+
+          {errors.general && <p className="text-red-600 text-center mb-2">{errors.general}</p>}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {loading ? 'Registering...' : 'Register'}
+          </button>
+                    <div className="text-center">
             <p className="text-sm text-gray-600">
               Already have an account?{' '}
               <button
@@ -511,14 +465,7 @@ const handleSubmit = async (e) => {
               </button>
             </p>
           </div>
-          
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-sm text-yellow-800">
-              <strong>Note:</strong> All accounts require admin verification before access is granted. 
-              You will receive an email notification once your account is approved.
-            </p>
-          </div>
-        </div>
+        </form>
       </div>
     </div>
   );

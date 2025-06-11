@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { Suspense, useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom' // Removed Router import
 import { useAuth } from './hooks/useAuth'
 import { USER_ROLES } from './utils/constants'
@@ -10,6 +10,7 @@ import LoadingSpinner from './components/common/LoadingSpinner'
 import NotificationBanner from './components/common/NotificationBanner'
 
 // Auth Pages
+import { AuthProvider } from './contexts/AuthContext'
 import Login from './pages/auth/Login'
 import Registration from './pages/auth/Registration'
 import ForgotPassword from './pages/auth/ForgotPassword'
@@ -63,7 +64,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to="/unauthorized" replace />
   }
   
-  return children
+  return children;
 }
 
 // Public Route Component
@@ -137,8 +138,9 @@ function App() {
 
 
   return (
-    // Removed the <Router> wrapper here since it's already in main.jsx
-    <AuthenticatedLayout>
+     
+    <AuthProvider>
+      <Suspense fallback={<LoadingSpinner />}>
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={
@@ -284,8 +286,10 @@ function App() {
         {/* Default Routes */}
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
+        
       </Routes>
-    </AuthenticatedLayout>
+      </Suspense>
+    </AuthProvider>
   )
 }
 

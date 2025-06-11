@@ -4,7 +4,6 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import firebaseAuth from '../services/firebase/auth';
 
 const AuthContext = createContext();
-export { AuthContext };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -15,12 +14,12 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
+  
   const [currentUser, setCurrentUser] = useState(null);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Sign up function
   const signup = async (userRegistrationData) => {
     try {
       setError(null);
@@ -39,7 +38,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Sign in function
   const signin = async (email, password) => {
     try {
       setError(null);
@@ -54,7 +52,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Sign out function
   const signout = async () => {
     try {
       setError(null);
@@ -67,7 +64,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Reset password function
   const forgotPassword = async (email) => {
     try {
       setError(null);
@@ -78,22 +74,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Clear error function
-  const clearError = () => {
-    setError(null);
-  };
+  const clearError = () => setError(null);
 
-  // Check if user has specific role
-  const hasRole = (role) => {
-    return userData?.role === role;
-  };
+  const hasRole = (role) => userData?.role === role;
+  const isVerified = () => userData?.status === 'verified';
 
-  // Check if user is verified
-  const isVerified = () => {
-    return userData?.status === 'verified';
-  };
-
-  // Monitor auth state changes
   useEffect(() => {
     const unsubscribe = firebaseAuth.onAuthStateChanged(async (user) => {
       try {
@@ -133,9 +118,26 @@ export const AuthProvider = ({ children }) => {
     isVerified
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+return (
+  <AuthContext.Provider
+    value={{
+      currentUser,
+      userData,
+      loading,
+      error,
+      signup,
+      signin,
+      signout,
+      forgotPassword,
+      clearError,
+      hasRole,
+      isVerified
+    }}
+  >
+    {children}
+  </AuthContext.Provider>
+);
+
 };
+export default AuthContext; // ✅ Default export
+export { AuthContext };  
