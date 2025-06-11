@@ -140,7 +140,7 @@ function App() {
   return (
      
     <AuthProvider>
-      <Suspense fallback={<LoadingSpinner />}>
+     
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={
@@ -288,7 +288,7 @@ function App() {
         <Route path="*" element={<Navigate to="/login" replace />} />
         
       </Routes>
-      </Suspense>
+    
     </AuthProvider>
   )
 }

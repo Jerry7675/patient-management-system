@@ -68,7 +68,7 @@ class FirebaseAuth {
       const user = userCredential.user;
 
       const userData = await this.getUserData(user.uid);
-
+     console.log('User data:', userData);
       return {
         success: true,
         user: {
