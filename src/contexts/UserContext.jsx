@@ -5,7 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 
 const UserContext = createContext();
 
-// User roles constants
+// User roles
 export const USER_ROLES = {
   PATIENT: 'patient',
   DOCTOR: 'doctor',
@@ -13,7 +13,7 @@ export const USER_ROLES = {
   ADMIN: 'admin'
 };
 
-// Account verification status
+// Verification status
 export const VERIFICATION_STATUS = {
   PENDING: 'pending',
   VERIFIED: 'verified',
@@ -50,54 +50,42 @@ const ActionTypes = {
   UPDATE_PERMISSIONS: 'UPDATE_PERMISSIONS'
 };
 
-// Reducer function
+// Reducer
 function userReducer(state, action) {
   switch (action.type) {
     case ActionTypes.SET_LOADING:
       return { ...state, loading: action.payload };
-    
     case ActionTypes.SET_USER:
       return { ...state, user: action.payload, loading: false };
-    
     case ActionTypes.SET_USER_PROFILE:
-      return { 
-        ...state, 
+      return {
+        ...state,
         userProfile: action.payload,
         permissions: calculatePermissions(action.payload?.role, action.payload?.verificationStatus)
       };
-    
     case ActionTypes.SET_ERROR:
       return { ...state, error: action.payload, loading: false };
-    
     case ActionTypes.SET_NOTIFICATIONS:
-      return { 
-        ...state, 
+      return {
+        ...state,
         notifications: action.payload,
         unreadCount: action.payload.filter(n => !n.read).length
       };
-    
     case ActionTypes.UPDATE_UNREAD_COUNT:
       return { ...state, unreadCount: action.payload };
-    
     case ActionTypes.CLEAR_USER:
-      return { 
-        ...initialState, 
-        loading: false 
-      };
-    
+      return { ...initialState, loading: false };
     case ActionTypes.UPDATE_PERMISSIONS:
       return { ...state, permissions: action.payload };
-    
     default:
       return state;
   }
 }
 
-// Calculate user permissions based on role and verification status
+// Permission logic
 function calculatePermissions(role, verificationStatus) {
   const isVerified = verificationStatus === VERIFICATION_STATUS.VERIFIED;
-  
-  const basePermissions = {
+  const base = {
     canViewRecords: false,
     canEditRecords: false,
     canVerifyRecords: false,
@@ -106,33 +94,15 @@ function calculatePermissions(role, verificationStatus) {
     canRequestCorrections: false
   };
 
-  if (!isVerified && role !== USER_ROLES.ADMIN) {
-    return basePermissions;
-  }
+  if (!isVerified && role !== USER_ROLES.ADMIN) return base;
 
   switch (role) {
     case USER_ROLES.PATIENT:
-      return {
-        ...basePermissions,
-        canViewRecords: true,
-        canRequestCorrections: true
-      };
-    
+      return { ...base, canViewRecords: true, canRequestCorrections: true };
     case USER_ROLES.DOCTOR:
-      return {
-        ...basePermissions,
-        canViewRecords: true,
-        canEditRecords: true,
-        canVerifyRecords: true
-      };
-    
+      return { ...base, canViewRecords: true, canEditRecords: true, canVerifyRecords: true };
     case USER_ROLES.MANAGEMENT:
-      return {
-        ...basePermissions,
-        canViewRecords: true,
-        canAddRecords: true
-      };
-    
+      return { ...base, canViewRecords: true, canAddRecords: true };
     case USER_ROLES.ADMIN:
       return {
         canViewRecords: true,
@@ -142,32 +112,36 @@ function calculatePermissions(role, verificationStatus) {
         canManageUsers: true,
         canRequestCorrections: false
       };
-    
     default:
-      return basePermissions;
+      return base;
   }
 }
 
-// UserProvider component
+// Provider
 export function UserProvider({ children }) {
   const [state, dispatch] = useReducer(userReducer, initialState);
 
-  // Load user profile from Firestore
+  // Safeguarded loadUserProfile
   const loadUserProfile = async (userId) => {
+    if (!userId || typeof userId !== 'string') {
+      console.warn('loadUserProfile: Invalid or missing userId', userId);
+      return null;
+    }
+
     try {
       const userDoc = await getDoc(doc(db, 'users', userId));
       if (userDoc.exists()) {
         const profileData = { id: userDoc.id, ...userDoc.data() };
         dispatch({ type: ActionTypes.SET_USER_PROFILE, payload: profileData });
-        
-        // Start listening for notifications if user is verified
+
         if (profileData.verificationStatus === VERIFICATION_STATUS.VERIFIED) {
           subscribeToNotifications(userId, profileData.role);
         }
-        
+
         return profileData;
       } else {
-        throw new Error('User profile not found');
+        console.warn('User profile not found in Firestore for userId:', userId);
+        return null;
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
@@ -176,64 +150,40 @@ export function UserProvider({ children }) {
     }
   };
 
-  // Subscribe to user notifications
-  const subscribeToNotifications = (userId, userRole) => {
-    let notificationsQuery;
-    
-    // Different notification queries based on user role
-    switch (userRole) {
+  const subscribeToNotifications = (userId, role) => {
+    let q;
+
+    switch (role) {
       case USER_ROLES.DOCTOR:
-        notificationsQuery = query(
-          collection(db, 'notifications'),
-          where('recipientId', '==', userId),
-          where('recipientRole', '==', 'doctor'),
-          orderBy('createdAt', 'desc')
-        );
-        break;
-      
       case USER_ROLES.MANAGEMENT:
-        notificationsQuery = query(
-          collection(db, 'notifications'),
-          where('recipientId', '==', userId),
-          where('recipientRole', '==', 'management'),
-          orderBy('createdAt', 'desc')
-        );
-        break;
-      
       case USER_ROLES.PATIENT:
-        notificationsQuery = query(
+        q = query(
           collection(db, 'notifications'),
           where('recipientId', '==', userId),
-          where('recipientRole', '==', 'patient'),
+          where('recipientRole', '==', role),
           orderBy('createdAt', 'desc')
         );
         break;
-      
       case USER_ROLES.ADMIN:
-        notificationsQuery = query(
+        q = query(
           collection(db, 'notifications'),
           where('recipientRole', '==', 'admin'),
           orderBy('createdAt', 'desc')
         );
         break;
-      
       default:
         return;
     }
 
-    return onSnapshot(notificationsQuery, (snapshot) => {
-      const notifications = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+    return onSnapshot(q, (snapshot) => {
+      const notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       dispatch({ type: ActionTypes.SET_NOTIFICATIONS, payload: notifications });
     });
   };
 
-  // Auth state listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
+      if (user?.uid) {
         dispatch({ type: ActionTypes.SET_USER, payload: user });
         await loadUserProfile(user.uid);
       } else {
@@ -244,63 +194,48 @@ export function UserProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  // Context value
   const value = {
     ...state,
-    
-    // User actions
     loadUserProfile,
-    
-    // Role checking utilities
+
+    // Role utilities
     isPatient: () => state.userProfile?.role === USER_ROLES.PATIENT,
     isDoctor: () => state.userProfile?.role === USER_ROLES.DOCTOR,
     isManagement: () => state.userProfile?.role === USER_ROLES.MANAGEMENT,
     isAdmin: () => state.userProfile?.role === USER_ROLES.ADMIN,
-    
-    // Verification status checking
+
+    // Verification status
     isVerified: () => state.userProfile?.verificationStatus === VERIFICATION_STATUS.VERIFIED,
     isPending: () => state.userProfile?.verificationStatus === VERIFICATION_STATUS.PENDING,
     isRejected: () => state.userProfile?.verificationStatus === VERIFICATION_STATUS.REJECTED,
-    
-    // Permission checking
+
+    // Permission checker
     hasPermission: (permission) => state.permissions[permission] || false,
-    
-    // Notification management
+
+    // Notification updater
     markNotificationAsRead: async (notificationId) => {
-      // This will be implemented in the notification service
-      // For now, just update local state
-      const updatedNotifications = state.notifications.map(notification => 
-        notification.id === notificationId 
-          ? { ...notification, read: true }
-          : notification
+      const updated = state.notifications.map(n =>
+        n.id === notificationId ? { ...n, read: true } : n
       );
-      dispatch({ type: ActionTypes.SET_NOTIFICATIONS, payload: updatedNotifications });
+      dispatch({ type: ActionTypes.SET_NOTIFICATIONS, payload: updated });
     },
-    
-    // Clear error
+
     clearError: () => dispatch({ type: ActionTypes.SET_ERROR, payload: null }),
-    
-    // Utility functions for role-based rendering
+
+    // Access guard
     canAccess: (allowedRoles) => {
       if (!state.userProfile) return false;
-      const isVerified = state.userProfile.verificationStatus === VERIFICATION_STATUS.VERIFIED;
-      const hasRole = allowedRoles.includes(state.userProfile.role);
-      
-      // Admin can access everything regardless of verification
-      if (state.userProfile.role === USER_ROLES.ADMIN) return hasRole;
-      
-      return isVerified && hasRole;
+      if (state.userProfile.role === USER_ROLES.ADMIN) return true;
+      return (
+        state.userProfile.verificationStatus === VERIFICATION_STATUS.VERIFIED &&
+        allowedRoles.includes(state.userProfile.role)
+      );
     }
   };
 
-  return (
-    <UserContext.Provider value={value}>
-      {children}
-    </UserContext.Provider>
-  );
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }
 
-// Custom hook to use the UserContext
 export function useUser() {
   const context = useContext(UserContext);
   if (!context) {

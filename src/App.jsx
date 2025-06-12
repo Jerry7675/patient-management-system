@@ -70,7 +70,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 // Public Route Component
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth()
-  
+  console.log("publicRoute - user:",user ,'loading:',loading)
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">
       <LoadingSpinner />

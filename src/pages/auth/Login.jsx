@@ -33,44 +33,52 @@ const Login = ({ onLogin }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+ // src/pages/auth/Login.jsx
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!validateForm()) return;
 
-    try {
-      setLoading(true);
-      const result = await signin(formData.email, formData.password); // ✅ From context
-
-      const { user } = result;
-
-      if (!userData?.status || userData.status !== 'verified') {
-        setErrors({
-          general: 'Your account is pending admin verification. Please wait for approval.',
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Navigate based on role
-      const dashboardRoutes = {
-        patient: 'patient/dashboard',
-        doctor: 'doctor/dashboard',
-        management: 'management/dashboard',
-        admin: 'admin/dashboard',
-      };
-
-      const rolePath = dashboardRoutes[userData?.role];
-      if (rolePath) {
-        navigate(`/${rolePath}`);
-      } else {
-        setErrors({ general: 'Unknown role. Please contact support.' });
-      }
-    } catch (error) {
-      setErrors({ general: error.message });
-    } finally {
+  try {
+    setLoading(true);
+    const result = await signin(formData.email, formData.password);
+    
+    if (!result.success) {
+      setErrors({ general: result.error });
       setLoading(false);
+      return;
     }
-  };
+
+    const { user } = result;
+
+    // Check status from result.user instead of userData
+    if (!user?.status || user.status !== 'approved') {
+      setErrors({
+        general: 'Your account is pending admin verification. Please wait for approval.',
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Navigate based on role
+    const dashboardRoutes = {
+      patient: 'patient/dashboard',
+      doctor: 'doctor/dashboard',
+      management: 'management/dashboard',
+      admin: 'admin/dashboard',
+    };
+
+    const rolePath = dashboardRoutes[user.role];
+    if (rolePath) {
+      navigate(`/${rolePath}`);
+    } else {
+      setErrors({ general: 'Unknown role. Please contact support.' });
+    }
+  } catch (error) {
+    setErrors({ general: error.message });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
