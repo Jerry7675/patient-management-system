@@ -47,9 +47,7 @@ export default function DoctorDashboard() {
   };
 
   const handleEditClick = (record) => {
-      const [notification, setNotification] = useState({ message: '', type: 'info' });
-      const showNotification = (msg, type = 'info') => {
-    setNotification({ message: msg, type });
+    
     setEditRecordId(record.id);
     setEditForm({
       disease: record.disease || '',
