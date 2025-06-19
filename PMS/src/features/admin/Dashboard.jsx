@@ -1,7 +1,8 @@
 // src/features/admin/Dashboard.jsx
 import { useEffect, useState } from 'react';
 import { getAllUsers, verifyUser, rejectUser } from '../../services/adminService';
-
+import Layout from '../../components/Layout';
+import logo from '../../assets/logo.png';
 export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +44,7 @@ export default function AdminDashboard() {
   if (loading) return <p className="p-4 text-center">Loading users...</p>;
 
   return (
+    <Layout >
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6 text-indigo-600">Admin Dashboard</h1>
 
@@ -96,5 +98,7 @@ export default function AdminDashboard() {
         </tbody>
       </table>
     </div>
+     </Layout> 
   );
+
 }

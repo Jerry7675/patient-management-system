@@ -1,6 +1,7 @@
 // src/features/management/Dashboard.jsx
 import { useEffect, useState } from 'react';
 import { getAllPatients, addPatientRecord } from '../../services/managementService';
+import Layout from '../../components/Layout';
 
 export default function ManagementDashboard() {
   const [patients, setPatients] = useState([]);
@@ -59,6 +60,7 @@ export default function ManagementDashboard() {
   };
 
   return (
+    <Layout>
     <div className="p-6 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-6 text-indigo-600">Management Dashboard</h1>
 
@@ -150,5 +152,6 @@ export default function ManagementDashboard() {
         </button>
       </form>
     </div>
+    </Layout>
   );
 }

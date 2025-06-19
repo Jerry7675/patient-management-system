@@ -1,6 +1,7 @@
 // src/features/patient/Dashboard.jsx
 import { useEffect, useState } from 'react';
 import { getPatientRecords } from '../../services/patientService';
+import Layout from '../../components/Layout';
 
 export default function PatientDashboard() {
   const [records, setRecords] = useState([]);
@@ -23,6 +24,8 @@ export default function PatientDashboard() {
   }, []);
 
   return (
+    <Layout>
+   
     <div className="p-6 min-h-screen bg-gray-50">
       <h1 className="text-2xl font-bold text-indigo-700 mb-4">Patient Dashboard</h1>
 
@@ -72,5 +75,6 @@ export default function PatientDashboard() {
         )}
       </section>
     </div>
+    </Layout>
   );
 }
