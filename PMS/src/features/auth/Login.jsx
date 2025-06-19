@@ -1,7 +1,7 @@
 // src/features/auth/Login.jsx
 import { useState } from 'react';
 import { loginUser } from '../../services/authService';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -29,36 +29,50 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex justify-center items-center bg-gray-100">
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200 px-4">
+      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h2 className="text-3xl font-bold text-center text-indigo-600 mb-6">Welcome Back</h2>
 
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={handleChange}
-          className="input input-bordered w-full mb-3"
-          required
-        />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="email"
+            name="email"
+            placeholder="Email"
+            value={form.email}
+            onChange={handleChange}
+            className="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            required
+          />
 
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={handleChange}
-          className="input input-bordered w-full mb-3"
-          required
-        />
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            value={form.password}
+            onChange={handleChange}
+            className="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            required
+          />
 
-        {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+          {error && <p className="text-red-600 text-sm">{error}</p>}
 
-        <button type="submit" className="btn btn-primary w-full">
-          Login
-        </button>
-      </form>
+          <button
+            type="submit"
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded transition"
+          >
+            Login
+          </button>
+        </form>
+
+        <div className="flex justify-between items-center mt-4 text-sm">
+          <Link to="/forgot-password" className="text-indigo-500 hover:underline">
+            Forgot Password?
+          </Link>
+          <Link to="/register" className="text-gray-600 hover:text-indigo-600 font-medium">
+            New User? Register
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

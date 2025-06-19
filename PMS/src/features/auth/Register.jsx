@@ -1,7 +1,7 @@
 // src/features/auth/Register.jsx
 import { useState } from 'react';
 import { registerUser } from '../../services/authService';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -20,8 +20,8 @@ export default function Register() {
     e.preventDefault();
     setError('');
     try {
-      await registerUser(form); // calls service
-      alert('Registered successfully! You can now login.');
+      await registerUser(form);
+      alert('Registration successful! Please log in.');
       navigate('/login');
     } catch (err) {
       setError(err.message);
@@ -29,49 +29,61 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex justify-center items-center bg-gray-100">
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4 text-center">Register</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-100 to-teal-200 px-4">
+      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h2 className="text-3xl font-bold text-center text-teal-600 mb-6">Create Account</h2>
 
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={handleChange}
-          className="input input-bordered w-full mb-3"
-          required
-        />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="email"
+            name="email"
+            placeholder="Email"
+            value={form.email}
+            onChange={handleChange}
+            className="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-teal-400"
+            required
+          />
 
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={handleChange}
-          className="input input-bordered w-full mb-3"
-          required
-        />
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            value={form.password}
+            onChange={handleChange}
+            className="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-teal-400"
+            required
+          />
 
-        <select
-          name="role"
-          value={form.role}
-          onChange={handleChange}
-          className="select select-bordered w-full mb-3"
-          required
-        >
-          <option value="">Select Role</option>
-          <option value="patient">Patient</option>
-          <option value="doctor">Doctor</option>
-          <option value="management">Management</option>
-        </select>
+          <select
+            name="role"
+            value={form.role}
+            onChange={handleChange}
+            className="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-teal-400"
+            required
+          >
+            <option value="">Select Role</option>
+            <option value="patient">Patient</option>
+            <option value="doctor">Doctor</option>
+            <option value="management">Management</option>
+          </select>
 
-        {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+          {error && <p className="text-red-600 text-sm">{error}</p>}
 
-        <button type="submit" className="btn btn-primary w-full">
-          Register
-        </button>
-      </form>
+          <button
+            type="submit"
+            className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 rounded transition"
+          >
+            Register
+          </button>
+        </form>
+
+        <div className="text-sm text-center mt-4">
+          Already have an account?{' '}
+          <Link to="/" className="text-teal-600 hover:underline font-medium">
+            Login
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
