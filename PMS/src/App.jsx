@@ -28,7 +28,7 @@ if (loading) return <Spinner />;
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
-
+        <Route path="/login" element={<Login />} />
         {/* Protected Routes */}
         <Route
           path="/patient/dashboard"
