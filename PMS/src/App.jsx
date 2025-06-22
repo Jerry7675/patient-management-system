@@ -9,6 +9,7 @@ import PatientDashboard from './features/patient/Dashboard';
 import DoctorDashboard from './features/doctor/Dashboard';
 import ManagementDashboard from './features/management/Dashboard';
 import AdminDashboard from './features/admin/Dashboard';
+import VerificationPending from './features/auth/VerificationPending';
 
 import PrivateRoute from './routes/PrivateRoute';
 import RoleRoute from './routes/RoleRoute';
@@ -24,6 +25,7 @@ if (loading) return <Spinner />;
     <Router>
       <Routes>
         {/* Public Routes */}
+        <Route path="/verification-pending" element={<VerificationPending />} />
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />

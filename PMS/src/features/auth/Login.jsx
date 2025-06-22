@@ -1,4 +1,3 @@
-// src/features/auth/Login.jsx
 import { useState } from 'react';
 import { loginUser } from '../../services/authService';
 import { useNavigate, Link } from 'react-router-dom';
@@ -15,16 +14,23 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
     try {
-      const { role } = await loginUser(form.email, form.password);
-      // Redirect based on role
+      const { role, verified } = await loginUser(form.email, form.password);
+
+      if (!verified) {
+        navigate('/verification-pending');
+        return;
+      }
+
+      // Redirect verified user to role-based dashboard
       if (role === 'patient') navigate('/patient/dashboard');
       else if (role === 'doctor') navigate('/doctor/dashboard');
       else if (role === 'management') navigate('/management/dashboard');
       else if (role === 'admin') navigate('/admin/dashboard');
       else navigate('/');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Login failed');
     }
   };
 
@@ -43,7 +49,6 @@ export default function Login() {
             className="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-indigo-400"
             required
           />
-
           <input
             type="password"
             name="password"
