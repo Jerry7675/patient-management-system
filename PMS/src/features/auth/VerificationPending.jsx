@@ -5,7 +5,7 @@ export default function VerificationPending() {
     <div className="min-h-screen flex items-center justify-center bg-yellow-50 px-4">
       <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md text-center">
         <img
-          src="/verification.svg"
+          src="./src/assets/logo.png"
           alt="Verification Pending"
           className="mx-auto w-24 h-24 mb-4"
         />

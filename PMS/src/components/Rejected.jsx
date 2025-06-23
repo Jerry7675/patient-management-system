@@ -5,7 +5,7 @@ export default function Rejected() {
     <div className="min-h-screen flex items-center justify-center bg-red-50 px-4">
       <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md text-center">
         <img
-          src="/rejected.svg" // Optional: Add your own SVG or PNG icon
+          src="./src/assets/logo.png"
           alt="Account Rejected"
           className="mx-auto w-24 h-24 mb-4"
         />
@@ -20,7 +20,7 @@ export default function Rejected() {
         <p className="text-sm text-gray-700 mb-4">
           If you believe this is a mistake or wish to inquire further, please contact us at:
           <br />
-          <span className="font-medium text-indigo-600">support@yourdomain.com</span>
+          <span className="font-medium text-indigo-600">CzAR.com</span>
         </p>
 
         <p className="text-xs text-gray-500 mb-4">
