@@ -1,15 +1,22 @@
 // src/firebase/firestore.js
-import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc
+} from 'firebase/firestore';
 import app from './config';
 
 const db = getFirestore(app);
 
-// Save role on registration — add 'verified: false' by default
-export const saveUserRole = async (uid, email, role, verified = false) => {
+// Save role on registration — use 'status' instead of boolean verified
+export const saveUserRole = async (uid, email, role, profile = {}) => {
   await setDoc(doc(db, 'users', uid), {
     email,
     role,
-    verified,
+    status: 'pending', // status: 'pending' | 'verified' | 'rejected'
+    profile,
     createdAt: new Date(),
   });
 };
@@ -21,11 +28,24 @@ export const getUserRole = async (uid) => {
   return snap.exists() ? snap.data().role : null;
 };
 
-// ✅ Check if user is verified (called during login)
-export const isUserVerified = async (uid) => {
+// ✅ Get user status ('pending', 'verified', or 'rejected')
+export const getUserStatus = async (uid) => {
   const docRef = doc(db, 'users', uid);
   const snap = await getDoc(docRef);
-  return snap.exists() ? snap.data().verified === true : false;
+  return snap.exists() ? snap.data().status || 'pending' : 'pending';
+};
+
+// ✅ Get user profile
+export const getUserProfile = async (uid) => {
+  const docRef = doc(db, 'users', uid);
+  const snap = await getDoc(docRef);
+  return snap.exists() ? snap.data().profile || null : null;
+};
+
+// ✅ Update user profile after registration or from dashboard
+export const updateUserProfile = async (uid, profile) => {
+  const userRef = doc(db, 'users', uid);
+  await updateDoc(userRef, { profile });
 };
 
 export default db;

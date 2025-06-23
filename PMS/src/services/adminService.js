@@ -2,7 +2,7 @@
 import db from '../firebase/firestore';
 import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
-// Fetch all users with their verification status
+// Fetch all users with status
 export const getAllUsers = async () => {
   const usersCol = collection(db, 'users');
   const snapshot = await getDocs(usersCol);
@@ -13,17 +13,17 @@ export const getAllUsers = async () => {
   return users;
 };
 
-// Mark user as verified
+// Mark user as verified (update status)
 export const verifyUser = async (uid) => {
   const userDoc = doc(db, 'users', uid);
   await updateDoc(userDoc, {
-    verified: true,
+    status: 'verified',
   });
 };
 
-// Reject user by deleting their record (and optionally their auth account in Firebase Auth if implemented)
+// Reject user by deleting their record
 export const rejectUser = async (uid) => {
   const userDoc = doc(db, 'users', uid);
-  await deleteDoc(userDoc);
-  // Note: To delete Firebase Auth user, you need Admin SDK on server side
+  await updateDoc(userDoc, { status: 'rejected' });
+ 
 };

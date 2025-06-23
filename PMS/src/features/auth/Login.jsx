@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -15,15 +16,25 @@ export default function Login() {
     e.preventDefault();
     setError('');
 
-    try {
-      const { role, verified } = await loginUser(form.email, form.password);
+    if (!agreed) {
+      setError('❗ You must agree to the privacy policy before logging in.');
+      return;
+    }
 
-      if (!verified) {
+    try {
+      const { role, status } = await loginUser(form.email, form.password);
+
+      if (status === 'pending') {
         navigate('/verification-pending');
         return;
       }
 
-      // Redirect verified user to role-based dashboard
+      if (status === 'rejected') {
+        navigate('/rejected');
+        return;
+      }
+
+      // ✅ Verified: Redirect based on role
       if (role === 'patient') navigate('/patient/dashboard');
       else if (role === 'doctor') navigate('/doctor/dashboard');
       else if (role === 'management') navigate('/management/dashboard');
@@ -58,6 +69,22 @@ export default function Login() {
             className="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-indigo-400"
             required
           />
+
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="privacy"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="w-4 h-4"
+            />
+            <label htmlFor="privacy" className="text-sm text-gray-700">
+              I agree to the{' '}
+              <Link to="/privacy-policy" className="text-indigo-600 hover:underline">
+                privacy policy
+              </Link>
+            </label>
+          </div>
 
           {error && <p className="text-red-600 text-sm">{error}</p>}
 

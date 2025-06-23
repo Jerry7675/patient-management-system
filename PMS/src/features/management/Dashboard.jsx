@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { getAllPatients, addPatientRecord } from '../../services/managementService';
 import Layout from '../../components/Layout';
+import ProfileSidebar from '../../components/ProfileSidebar';
 
 export default function ManagementDashboard() {
   const [patients, setPatients] = useState([]);
@@ -63,7 +64,10 @@ export default function ManagementDashboard() {
     <Layout>
     <div className="p-6 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-6 text-indigo-600">Management Dashboard</h1>
-
+             <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Patient Dashboard</h1>
+        <ProfileSidebar />
+      </div>
       <div className="mb-4">
         <label className="block mb-1 font-semibold">Select Patient:</label>
         <select

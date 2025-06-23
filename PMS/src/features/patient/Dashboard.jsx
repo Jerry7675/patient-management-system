@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { getPatientRecords } from '../../services/patientService';
 import Layout from '../../components/Layout';
+import ProfileSidebar from '../../components/ProfileSidebar';
 
 export default function PatientDashboard() {
   const [records, setRecords] = useState([]);
@@ -28,7 +29,10 @@ export default function PatientDashboard() {
    
     <div className="p-6 min-h-screen bg-gray-50">
       <h1 className="text-2xl font-bold text-indigo-700 mb-4">Patient Dashboard</h1>
-
+              <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Patient Dashboard</h1>
+        <ProfileSidebar />
+      </div>
       <section className="mb-6">
         <h2 className="text-lg font-semibold text-gray-700 mb-2">👤 Profile</h2>
         <div className="bg-white p-4 shadow rounded">Patient profile information will be shown here.</div>

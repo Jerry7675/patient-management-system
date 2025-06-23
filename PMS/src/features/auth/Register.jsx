@@ -20,9 +20,8 @@ export default function Register() {
     e.preventDefault();
     setError('');
     try {
-      await registerUser(form);
-      alert('Registration successful! Please log in.');
-      navigate('/');
+     const user = await registerUser(form);
+      navigate('/complete-profile', { state: { uid: user.uid, role: form.role } }); 
     } catch (err) {
       setError(err.message);
     }
@@ -83,6 +82,12 @@ export default function Register() {
             Login
           </Link>
         </div>
+                <p className="text-x justify-center mt-4 mx-6">
+          By registering, you agree to our{' '}
+          <Link to="/privacy-policy" className="text-indigo-600 underline">
+            Privacy Policy
+          </Link>.
+        </p>
       </div>
     </div>
   );

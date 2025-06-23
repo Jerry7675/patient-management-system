@@ -5,6 +5,7 @@ import { getPendingRecords, verifyRecordWithPatient, editRecord } from '../../se
 import Layout from '../../components/Layout'; 
 import Modal from '../../components/Modal';
 import NotificationBanner from '../../components/NotificationBanner';
+import ProfileSidebar from '../../components/ProfileSidebar';
 
 export default function DoctorDashboard() {
   const { user } = useAuthContext();
@@ -98,8 +99,13 @@ export default function DoctorDashboard() {
   return (
     <Layout>
     <div className="max-w-6xl mx-auto p-6">
+      
       <h1 className="text-3xl font-bold mb-6 text-indigo-600">Doctor Dashboard - Verify Records</h1>
       {message && <p className="mb-4 text-center text-green-600">{message}</p>}
+            <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Patient Dashboard</h1>
+        <ProfileSidebar />
+      </div>
 
       {pendingRecords.length === 0 ? (
         <p className="text-center text-gray-500">No records pending verification.</p>

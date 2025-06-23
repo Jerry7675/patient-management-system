@@ -4,6 +4,10 @@ import Register from './features/auth/Register';
 import ForgotPassword from './features/auth/ForgotPassword';
 import Spinner from './components/Spinner';
 import { useAuthContext } from './context/AuthContext';
+import CompleteProfile from './features/auth/CompleteProfile';
+import Rejected from './components/Rejected';
+import PrivacyPolicy from './components/PrivacyPolicy';
+
 
 import PatientDashboard from './features/patient/Dashboard';
 import DoctorDashboard from './features/doctor/Dashboard';
@@ -31,6 +35,9 @@ if (loading) return <Spinner />;
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/complete-profile" element={<CompleteProfile />} />
+        <Route path="/rejected" element={<Rejected />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         {/* Protected Routes */}
         <Route
           path="/patient/dashboard"
