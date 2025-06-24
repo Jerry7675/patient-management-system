@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getAllUsers, verifyUser, rejectUser } from '../../services/adminService';
+import { getUserProfile } from '../../firebase/firestore';
 import Layout from '../../components/Layout';
 import ProfileSidebar from '../../components/ProfileSidebar';
 
@@ -7,6 +8,8 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [activeProfileUid, setActiveProfileUid] = useState(null);
+  const [activeProfile, setActiveProfile] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -41,7 +44,17 @@ export default function AdminDashboard() {
     }
   };
 
-  // Filter users by status
+  const toggleProfile = async (uid) => {
+    if (activeProfileUid === uid) {
+      setActiveProfileUid(null);
+      setActiveProfile(null);
+    } else {
+      const profile = await getUserProfile(uid);
+      setActiveProfile(profile);
+      setActiveProfileUid(uid);
+    }
+  };
+
   const pendingUsers = users.filter((u) => u.status === 'pending');
   const verifiedUsersByRole = {
     patient: users.filter((u) => u.status === 'verified' && u.role === 'patient'),
@@ -69,19 +82,45 @@ export default function AdminDashboard() {
           users={pendingUsers}
           onVerify={handleVerify}
           onReject={handleReject}
+          onProfileClick={toggleProfile}
+          activeProfileUid={activeProfileUid}
+          activeProfile={activeProfile}
         />
 
-        <UserTable title="Verified Patients" users={verifiedUsersByRole.patient} />
-        <UserTable title="Verified Doctors" users={verifiedUsersByRole.doctor} />
-        <UserTable title="Verified Management" users={verifiedUsersByRole.management} />
-        <UserTable title="Verified Admins" users={verifiedUsersByRole.admin} />
+        <UserTable
+          title="Verified Patients"
+          users={verifiedUsersByRole.patient}
+          onProfileClick={toggleProfile}
+          activeProfileUid={activeProfileUid}
+          activeProfile={activeProfile}
+        />
+        <UserTable
+          title="Verified Doctors"
+          users={verifiedUsersByRole.doctor}
+          onProfileClick={toggleProfile}
+          activeProfileUid={activeProfileUid}
+          activeProfile={activeProfile}
+        />
+        <UserTable
+          title="Verified Management"
+          users={verifiedUsersByRole.management}
+          onProfileClick={toggleProfile}
+          activeProfileUid={activeProfileUid}
+          activeProfile={activeProfile}
+        />
+        <UserTable
+          title="Verified Admins"
+          users={verifiedUsersByRole.admin}
+          onProfileClick={toggleProfile}
+          activeProfileUid={activeProfileUid}
+          activeProfile={activeProfile}
+        />
       </div>
     </Layout>
   );
 }
 
-// Reusable User Table component
-function UserTable({ title, users, onVerify, onReject }) {
+function UserTable({ title, users, onVerify, onReject, onProfileClick, activeProfileUid, activeProfile }) {
   return (
     <div className="mb-10">
       <h2 className="text-xl font-semibold text-gray-700 mb-2">{title}</h2>
@@ -93,38 +132,52 @@ function UserTable({ title, users, onVerify, onReject }) {
               <th className="border px-4 py-2">Role</th>
               <th className="border px-4 py-2">Status</th>
               {onVerify && <th className="border px-4 py-2">Actions</th>}
+              <th className="border px-4 py-2">Profile</th>
             </tr>
           </thead>
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={onVerify ? 4 : 3} className="text-center py-4 text-gray-500">
+                <td colSpan={5} className="text-center py-4 text-gray-500">
                   No users found.
                 </td>
               </tr>
             ) : (
               users.map(({ uid, email, role, status }) => (
-                <tr key={uid} className="hover:bg-indigo-50">
-                  <td className="border px-4 py-2">{email}</td>
-                  <td className="border px-4 py-2 capitalize">{role}</td>
-                  <td className="border px-4 py-2 text-center capitalize">{status}</td>
-                  {onVerify && (
-                    <td className="border px-4 py-2 text-center space-x-2">
+                <>
+                  <tr key={uid} className="hover:bg-indigo-50">
+                    <td className="border px-4 py-2">{email}</td>
+                    <td className="border px-4 py-2 capitalize">{role}</td>
+                    <td className="border px-4 py-2 text-center capitalize">{status}</td>
+                    {onVerify && (
+                      <td className="border px-4 py-2 text-center space-x-2">
+                        <button onClick={() => onVerify(uid)} className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Verify</button>
+                        <button onClick={() => onReject(uid)} className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">Reject</button>
+                      </td>
+                    )}
+                    <td className="border px-4 py-2 text-center">
                       <button
-                        onClick={() => onVerify(uid)}
-                        className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                        onClick={() => onProfileClick(uid)}
+                        className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
                       >
-                        Verify
-                      </button>
-                      <button
-                        onClick={() => onReject(uid)}
-                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                      >
-                        Reject
+                        {activeProfileUid === uid ? 'Close' : 'View'}
                       </button>
                     </td>
+                  </tr>
+                  {activeProfileUid === uid && activeProfile && (
+                    <tr className="bg-gray-50">
+                      <td colSpan={5} className="px-6 py-4 text-left">
+                        <div className="text-sm space-y-1">
+                          <p><strong>Name:</strong> {activeProfile.name || 'N/A'}</p>
+                          <p><strong>DOB:</strong> {activeProfile.dob || 'N/A'}</p>
+                          <p><strong>Phone:</strong> {activeProfile.phone || 'N/A'}</p>
+                          <p><strong>Address:</strong> {activeProfile.address || 'N/A'}</p>
+                          <p><strong>Citizenship No:</strong> {activeProfile.citizenshipNo || 'N/A'}</p>
+                        </div>
+                      </td>
+                    </tr>
                   )}
-                </tr>
+                </>
               ))
             )}
           </tbody>
