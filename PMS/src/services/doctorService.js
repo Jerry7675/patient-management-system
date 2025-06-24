@@ -7,54 +7,68 @@ import {
   getDocs,
   doc,
   updateDoc,
+  getDoc
 } from 'firebase/firestore';
 
-// Fetch all records where verified == false (pending verification)
-export const getPendingRecords = async () => {
+/**
+ * Fetch all pending (unverified) records assigned to the given doctor.
+ * @param {string} doctorEmail - The email of the logged-in doctor
+ * @returns {Array} Array of pending records objects
+ */
+export const getPendingRecords = async (doctorEmail) => {
   const patientsRecordsRef = collection(db, 'patients_records');
+  const patientsSnapshot = await getDocs(patientsRecordsRef);
 
   const pendingRecords = [];
 
-  // Fetch all patient IDs
-  const patientsSnapshot = await getDocs(patientsRecordsRef);
-
   for (const patientDoc of patientsSnapshot.docs) {
-    // For each patient, get 'records' subcollection where verified == false
     const recordsRef = collection(db, 'patients_records', patientDoc.id, 'records');
-    const q = query(recordsRef, where('verified', '==', false));
+    // Query for unverified records assigned to this doctor only
+    const q = query(
+      recordsRef, 
+      where('verified', '==', false),
+      where('doctorName', '==', doctorEmail)  // Filter by doctor
+    );
+
     const recordsSnapshot = await getDocs(q);
 
-    recordsSnapshot.forEach((recDoc) => {
+    for (const recDoc of recordsSnapshot.docs) {
+      // Fetch patient email for display
+      const patientProfileDoc = doc(db, 'users', patientDoc.id);
+      const patientProfileSnap = await getDoc(patientProfileDoc);
+      const patientData = patientProfileSnap.exists() ? patientProfileSnap.data() : {};
+
       pendingRecords.push({
         id: recDoc.id,
         patientUid: patientDoc.id,
-        patientEmail: patientDoc.data().email || 'Unknown',
+        patientEmail: patientData.email || 'Unknown',
         ...recDoc.data(),
       });
-    });
+    }
   }
   return pendingRecords;
 };
 
-// Verify a record by setting verified to true and adding doctorName as current user email (you can pass doctorName param)
-export const verifyRecord = async (recordId, doctorName) => {
-  // recordId alone is not enough because records are nested under patient docs
-  // So, update needs patientUid and recordId; to keep API simple, doctor dashboard should send both.
-
-  throw new Error(
-    'verifyRecord requires patientUid and recordId. Use verifyRecordWithPatient.'
-  );
-};
-
-export const verifyRecordWithPatient = async (patientUid, recordId, doctorName) => {
+/**
+ * Mark a record as verified by the doctor.
+ * @param {string} patientUid - UID of the patient
+ * @param {string} recordId - Record document ID
+ * @param {string} doctorEmail - Email of doctor verifying
+ */
+export const verifyRecordWithPatient = async (patientUid, recordId, doctorEmail) => {
   const recordDocRef = doc(db, 'patients_records', patientUid, 'records', recordId);
   await updateDoc(recordDocRef, {
     verified: true,
-    doctorName: doctorName || 'Doctor',
+    doctorName: doctorEmail || 'Doctor',
   });
 };
 
-// Edit a record by id under a patient
+/**
+ * Edit a patient's record.
+ * @param {string} patientUid - UID of the patient
+ * @param {string} recordId - Record document ID
+ * @param {Object} updates - Fields to update
+ */
 export const editRecord = async (patientUid, recordId, updates) => {
   const recordDocRef = doc(db, 'patients_records', patientUid, 'records', recordId);
   await updateDoc(recordDocRef, updates);
