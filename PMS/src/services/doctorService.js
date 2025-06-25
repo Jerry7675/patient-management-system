@@ -3,52 +3,48 @@ import db from '../firebase/firestore';
 import {
   collection,
   getDocs,
+  doc,
+  getDoc
 } from 'firebase/firestore';
 
 /**
- * Fetch all patient records from Firestore under:
- * collection 'patients_records' -> patientUid documents -> 'records' subcollection
- * 
- * @returns {Promise<Array>} Array of all records with patientUid and record data
+ * Fetch all records assigned to the current doctor and unverified.
  */
-export const getAllRecords = async () => {
-  try {
-    console.log('[doctorService] getAllRecords started');
+export const getPendingRecords = async (currentDoctor) => {
+  console.log('[getPendingRecords] Start');
+  const result = [];
 
-    // Reference to 'patients_records' collection
-    const patientsRef = collection(db, 'patients_records');
+  const patientsRef = collection(db, 'patients_records');
+  const patientsSnapshot = await getDocs(patientsRef);
+  console.log('[getPendingRecords] Found patients:', patientsSnapshot.size);
 
-    // Fetch all patient documents
-    const patientsSnapshot = await getDocs(patientsRef);
-    console.log(`[doctorService] Found patients: ${patientsSnapshot.size}`);
+  for (const patientDoc of patientsSnapshot.docs) {
+    const patientUid = patientDoc.id;
+    const recordsRef = collection(db, 'patients_records', patientUid, 'records');
+    const recordsSnapshot = await getDocs(recordsRef);
 
-    const allRecords = [];
+    for (const recDoc of recordsSnapshot.docs) {
+      const recordData = recDoc.data();
+      const isAssigned = (
+        recordData.doctorName?.trim().toLowerCase() === currentDoctor.name.trim().toLowerCase() &&
+        recordData.doctorPhone?.trim() === currentDoctor.phone.trim()
+      );
+      const isUnverified = recordData.verified === false;
 
-    // Loop through each patient document
-    for (const patientDoc of patientsSnapshot.docs) {
-      const patientUid = patientDoc.id;
-      console.log(`[doctorService] Fetching records for patientUid: ${patientUid}`);
+      if (isAssigned && isUnverified) {
+        const userDoc = await getDoc(doc(db, 'users', patientUid));
+        const userData = userDoc.exists() ? userDoc.data() : {};
 
-      // Reference to 'records' subcollection for this patient
-      const recordsRef = collection(db, 'patients_records', patientUid, 'records');
-      const recordsSnapshot = await getDocs(recordsRef);
-
-      console.log(`[doctorService] Found records: ${recordsSnapshot.size} for patientUid: ${patientUid}`);
-
-      // Loop through each record doc and push to allRecords array
-      recordsSnapshot.forEach((recordDoc) => {
-        allRecords.push({
-          id: recordDoc.id,
+        result.push({
+          id: recDoc.id,
           patientUid,
-          ...recordDoc.data(),
+          patientEmail: userData.email || 'unknown',
+          ...recordData
         });
-      });
+      }
     }
-
-    console.log(`[doctorService] Total records fetched: ${allRecords.length}`);
-    return allRecords;
-  } catch (error) {
-    console.error('[doctorService] Error fetching records:', error);
-    throw error;
   }
+
+  console.log('[getPendingRecords] Returning records:', result.length);
+  return result;
 };
