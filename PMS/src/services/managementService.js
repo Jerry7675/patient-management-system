@@ -28,20 +28,11 @@ export const addPatientRecord = async (patientUid, record) => {
   const patientRecordsCollection = collection(db, 'patients_records', patientUid, 'records');
 
   const docData = {
-    doctorName: record.doctorName || '',
-    doctorPhone: record.doctorPhone || '',
-    patientName: record.patientName || '',
+    ...record, // Include all form fields dynamically
     date: serverTimestamp(),
-    disease: record.disease || 'unspecified',
     verified: false,
     managementEntered: true,
   };
-
-  // Optional fields only if defined
-  if (record.reportImageUrl) docData.reportImageUrl = record.reportImageUrl;
-  if (record.prescription) docData.prescription = record.prescription;
-  if (record.dosage) docData.dosage = record.dosage;
-  if (record.recommendations) docData.recommendations = record.recommendations;
 
   await addDoc(patientRecordsCollection, docData);
 };
