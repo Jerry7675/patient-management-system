@@ -64,9 +64,6 @@ export default function HypertensionForm({ formData, onChange }) {
         />
       </div>
 
-      <div>
-       <PrescriptionTable formData={formData} onChange={onChange} />
-      </div>
 
       <div>
         <label className="block font-semibold mb-1">Associated Conditions (e.g. kidney disease, diabetes) *</label>

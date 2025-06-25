@@ -107,9 +107,7 @@ export default function KidneyDiseaseForm({ formData, onChange }) {
         />
       </div>
 
-      <div>
-       <PrescriptionTable formData={formData} onChange={onChange} />
-      </div>
+     
 
       <div>
         <label className="block font-semibold mb-1">Recommendations and Follow-up *</label>

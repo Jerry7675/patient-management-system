@@ -63,9 +63,7 @@ export default function DiabetesForm({ formData, onChange }) {
         />
       </div>
 
-      <div>
-       <PrescriptionTable formData={formData} onChange={onChange} />
-      </div>
+
 
       <div>
         <label className="block font-semibold mb-1">Complications (e.g. neuropathy, retinopathy) *</label>

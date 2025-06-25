@@ -2,74 +2,53 @@
 import db from '../firebase/firestore';
 import {
   collection,
-  query,
-  where,
   getDocs,
-  doc,
-  updateDoc,
-  getDoc
 } from 'firebase/firestore';
 
 /**
- * Fetch all pending (unverified) records assigned to the given doctor.
- * @param {string} doctorEmail - The email of the logged-in doctor
- * @returns {Array} Array of pending records objects
+ * Fetch all patient records from Firestore under:
+ * collection 'patients_records' -> patientUid documents -> 'records' subcollection
+ * 
+ * @returns {Promise<Array>} Array of all records with patientUid and record data
  */
-export const getPendingRecords = async (doctorEmail) => {
-  const patientsRecordsRef = collection(db, 'patients_records');
-  const patientsSnapshot = await getDocs(patientsRecordsRef);
+export const getAllRecords = async () => {
+  try {
+    console.log('[doctorService] getAllRecords started');
 
-  const pendingRecords = [];
+    // Reference to 'patients_records' collection
+    const patientsRef = collection(db, 'patients_records');
 
-  for (const patientDoc of patientsSnapshot.docs) {
-    const recordsRef = collection(db, 'patients_records', patientDoc.id, 'records');
-    // Query for unverified records assigned to this doctor only
-    const q = query(
-      recordsRef, 
-      where('verified', '==', false),
-      where('doctorName', '==', doctorEmail)  // Filter by doctor
-    );
+    // Fetch all patient documents
+    const patientsSnapshot = await getDocs(patientsRef);
+    console.log(`[doctorService] Found patients: ${patientsSnapshot.size}`);
 
-    const recordsSnapshot = await getDocs(q);
+    const allRecords = [];
 
-    for (const recDoc of recordsSnapshot.docs) {
-      // Fetch patient email for display
-      const patientProfileDoc = doc(db, 'users', patientDoc.id);
-      const patientProfileSnap = await getDoc(patientProfileDoc);
-      const patientData = patientProfileSnap.exists() ? patientProfileSnap.data() : {};
+    // Loop through each patient document
+    for (const patientDoc of patientsSnapshot.docs) {
+      const patientUid = patientDoc.id;
+      console.log(`[doctorService] Fetching records for patientUid: ${patientUid}`);
 
-      pendingRecords.push({
-        id: recDoc.id,
-        patientUid: patientDoc.id,
-        patientEmail: patientData.email || 'Unknown',
-        ...recDoc.data(),
+      // Reference to 'records' subcollection for this patient
+      const recordsRef = collection(db, 'patients_records', patientUid, 'records');
+      const recordsSnapshot = await getDocs(recordsRef);
+
+      console.log(`[doctorService] Found records: ${recordsSnapshot.size} for patientUid: ${patientUid}`);
+
+      // Loop through each record doc and push to allRecords array
+      recordsSnapshot.forEach((recordDoc) => {
+        allRecords.push({
+          id: recordDoc.id,
+          patientUid,
+          ...recordDoc.data(),
+        });
       });
     }
+
+    console.log(`[doctorService] Total records fetched: ${allRecords.length}`);
+    return allRecords;
+  } catch (error) {
+    console.error('[doctorService] Error fetching records:', error);
+    throw error;
   }
-  return pendingRecords;
-};
-
-/**
- * Mark a record as verified by the doctor.
- * @param {string} patientUid - UID of the patient
- * @param {string} recordId - Record document ID
- * @param {string} doctorEmail - Email of doctor verifying
- */
-export const verifyRecordWithPatient = async (patientUid, recordId, doctorEmail) => {
-  const recordDocRef = doc(db, 'patients_records', patientUid, 'records', recordId);
-  await updateDoc(recordDocRef, {
-    verified: true,
-    doctorName: doctorEmail || 'Doctor',
-  });
-};
-
-/**
- * Edit a patient's record.
- * @param {string} patientUid - UID of the patient
- * @param {string} recordId - Record document ID
- * @param {Object} updates - Fields to update
- */
-export const editRecord = async (patientUid, recordId, updates) => {
-  const recordDocRef = doc(db, 'patients_records', patientUid, 'records', recordId);
-  await updateDoc(recordDocRef, updates);
 };

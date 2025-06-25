@@ -69,9 +69,7 @@ export default function NeurologyForm({ formData, onChange }) {
         />
       </div>
 
-      <div>
-       <PrescriptionTable formData={formData} onChange={onChange} />
-      </div>
+     
 
       <div>
         <label className="block font-semibold mb-1">Therapies and Rehabilitation *</label>
