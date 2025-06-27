@@ -109,9 +109,7 @@ export default function AllergiesForm({ formData, onChange }) {
         />
       </div>
 
-      <div>
-       <PrescriptionTable formData={formData} onChange={onChange} />
-      </div>
+     
 
       <div>
         <label className="block font-semibold mb-1">Emergency Action Plan *</label>

@@ -1,49 +1,54 @@
 // src/services/patientService.js
-
-import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  updateDoc,
+  doc,
+} from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import app from '../firebase/config';
+import db from '../firebase/firestore';
 
-const db = getFirestore(app);
-const auth = getAuth(app);
+// ✅ Fetch verified records for the current authenticated user
+export const fetchVerifiedRecordsByCurrentUser = async () => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) throw new Error('User not authenticated');
+  const patientUid = user.uid;
 
-// Fetch all records for the current patient
-export const getPatientRecords = async () => {
-  const currentUser = auth.currentUser;
-  if (!currentUser) throw new Error('User not authenticated');
+  console.log('[patientService] Fetching records for UID:', patientUid);
 
-  const recordsRef = collection(db, 'records');
-  const q = query(recordsRef, where('patientId', '==', currentUser.uid));
+  const recordsRef = collection(db, 'patients_records', patientUid, 'records');
+  const q = query(recordsRef, where('verified', '==', true));
+  const snapshot = await getDocs(q);
 
-  const querySnapshot = await getDocs(q);
-  const records = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  const records = [];
+  snapshot.forEach((docSnap) => {
+    records.push({ id: docSnap.id, ...docSnap.data() });
+  });
+
+  console.log('[patientService] Records fetched:', records.length);
   return records;
 };
 
-// Placeholder for fetching patient profile info
-export const getPatientProfile = async () => {
-  const currentUser = auth.currentUser;
-  if (!currentUser) throw new Error('User not authenticated');
+// ✅ Request correction on a specific record for the current authenticated user
+export const requestRecordCorrection = async (recordId) => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) throw new Error('User not authenticated');
+  const patientUid = user.uid;
 
-  const userDoc = await getDocs(collection(db, 'users'));
-  const profile = userDoc.docs
-    .map((doc) => ({ id: doc.id, ...doc.data() }))
-    .find((u) => u.id === currentUser.uid);
+  if (!recordId) throw new Error('recordId is required');
+  console.log('[patientService] Requesting correction for:', recordId);
 
-  return profile || {};
-};
+  const recordRef = doc(db, 'patients_records', patientUid, 'records', recordId);
 
-// Request correction on a specific record
-export const requestRecordCorrection = async (recordId, message) => {
-  const currentUser = auth.currentUser;
-  if (!currentUser) throw new Error('User not authenticated');
-
-  const correctionRef = collection(db, 'correction_requests');
-  await setDoc(doc(correctionRef, `${recordId}_${currentUser.uid}`), {
-    recordId,
-    patientId: currentUser.uid,
-    message,
-    status: 'pending',
-    createdAt: new Date(),
+  await updateDoc(recordRef, {
+    verified: false,
+    requestedCorrection: true,
   });
+
+  console.log('[patientService] Correction request updated.');
+  return true;
 };
