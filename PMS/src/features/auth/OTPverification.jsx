@@ -1,7 +1,9 @@
+// src/features/auth/OTPVerification.jsx
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { verifyOTP, sendOTP } from '../services/otpService';
-import { verifyUserWithOTP } from '../services/authService';
+import { verifyOTP, sendOTP } from '../../services/otpService';
+import { verifyUserWithOTP } from '../../services/authService';
 
 export default function OTPVerification() {
   const [otp, setOtp] = useState('');
@@ -9,12 +11,12 @@ export default function OTPVerification() {
   const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+  const [otpSent, setOtpSent] = useState(false);
+
   const navigate = useNavigate();
   const { state } = useLocation();
   const { email, userId, role } = state || {};
 
-  // Redirect if missing required state
   useEffect(() => {
     if (!email || !userId || !role) {
       navigate('/login');
@@ -22,14 +24,20 @@ export default function OTPVerification() {
   }, [email, userId, role, navigate]);
 
   useEffect(() => {
-    // Send initial OTP
-    sendInitialOTP();
-    
-    // Set up timer
-    const interval = setInterval(() => {
-      setTimer(prev => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
+    if (email && userId && !otpSent) {
+      sendOTP(email, userId)
+        .then(() => {
+          setError('');
+          setOtpSent(true);
+        })
+        .catch(() => setError('Failed to send OTP. Please try again.'));
+    }
+  }, [email, userId, otpSent]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimer((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -37,25 +45,14 @@ export default function OTPVerification() {
     if (timer === 0) setCanResend(true);
   }, [timer]);
 
-  const sendInitialOTP = async () => {
-    try {
-      await sendOTP(email, userId);
-      setError('');
-    } catch (err) {
-      setError('Failed to send OTP. Please try again.');
-    }
-  };
-
   const handleVerify = async () => {
     try {
       setLoading(true);
-      await verifyOTP(userId, otp);
-      
-      // Complete the authentication
-      await verifyUserWithOTP(userId, otp);
-      
+      await verifyOTP(userId, otp); // ✅ Only call verifyOTP here
+      await verifyUserWithOTP(userId); // ✅ No need to pass OTP again
+
       // Redirect based on role
-      switch(role) {
+      switch (role) {
         case 'patient':
           navigate('/patient/dashboard');
           break;
@@ -83,16 +80,17 @@ export default function OTPVerification() {
     setOtp('');
     setCanResend(false);
     setTimer(60);
-    
+
     try {
       await sendOTP(email, userId);
+      setOtpSent(true);
     } catch (err) {
       setError('Failed to resend OTP. Please try again.');
     }
   };
 
   if (!email || !userId || !role) {
-    return null; // Or a loading spinner while redirect happens
+    return null;
   }
 
   return (
@@ -102,7 +100,7 @@ export default function OTPVerification() {
         <p className="mb-4 text-center">
           We've sent a 6-digit code to <span className="font-semibold">{email}</span>
         </p>
-        
+
         <div className="mb-4">
           <input
             type="text"
@@ -114,31 +112,49 @@ export default function OTPVerification() {
             autoFocus
           />
         </div>
-        
+
         {error && (
           <div className="mb-4 text-red-500 text-sm text-center">{error}</div>
         )}
-        
+
         <button
           onClick={handleVerify}
           disabled={otp.length !== 6 || loading}
           className={`w-full py-2 px-4 rounded-md transition ${
             otp.length === 6 && !loading
-              ? 'bg-blue-600 text-white hover:bg-blue-700' 
+              ? 'bg-blue-600 text-white hover:bg-blue-700'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
           {loading ? (
             <span className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg
+                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
               Verifying...
             </span>
-          ) : 'Verify'}
+          ) : (
+            'Verify'
+          )}
         </button>
-        
+
         <div className="mt-4 text-center text-sm">
           {canResend ? (
             <button

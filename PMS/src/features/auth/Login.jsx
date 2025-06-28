@@ -1,6 +1,8 @@
+// src/features/auth/Login.jsx
+
 import { useState } from 'react';
 import { loginUser } from '../../services/authService';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -35,12 +37,11 @@ export default function Login() {
         return;
       }
 
-      // For verified users, redirect to OTP verification
       if (status === 'verified') {
         navigate('/verify-otp', {
           state: {
             email: form.email,
-            uid: user.uid,
+            userId: user.uid, // make sure this key matches OTPVerification.jsx
             role,
             from: location.pathname
           }
@@ -48,7 +49,6 @@ export default function Login() {
         return;
       }
 
-      // Fallback for other statuses
       navigate('/');
     } catch (err) {
       setError(err.message || 'Login failed');

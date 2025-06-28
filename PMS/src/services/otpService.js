@@ -1,78 +1,100 @@
 import emailjs from '@emailjs/browser';
-import  db  from '../firebase/config'; // Your Firebase config
+import { db } from '../firebase/config'; // Make sure this import is correct
 import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
 
-// Initialize EmailJS
-emailjs.init(process.env.VITE_EMAILJS_PUBLIC_KEY);
+// Initialize EmailJS with your actual credentials
+const emailjsConfig = {
+  serviceId: 'service_6hebjro',
+  templateId: 'template_ayfu3mn',
+  publicKey: 'D4yxLK0hIfEMCRWfQ'
+};
+
+emailjs.init(emailjsConfig.publicKey);
 
 export const sendOTP = async (email, userId) => {
-  // Generate 6-digit OTP
+  // Validate inputs
+  if (!email || !userId) {
+    throw new Error('Email and User ID are required');
+  }
+
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = Timestamp.fromDate(new Date(Date.now() + 5 * 60 * 1000)); // 5 minutes expiry
+  const expiresAt = Timestamp.fromDate(new Date(Date.now() + 10 * 60 * 1000)); // 10 min expiry
 
   try {
-    // Store OTP in Firestore
-    await setDoc(doc(db, 'otps', userId), {
+    // Create document reference - IMPORTANT: Use doc() with db
+    console.log("Is db valid Firestore?", db); 
+    console.log("userId", userId);   
+    const otpDocRef = doc(db, 'otps', userId);
+    console.log('saving otp to firestore:', otpDocRef.path);
+    await setDoc(otpDocRef, {
       otp,
       email,
       expiresAt,
-      attempts: 0
+      attempts: 0,
+      createdAt: Timestamp.now()
     });
-
-    // Send OTP via EmailJS
+     console.log('OTP saved to firebase:');
+    // Send email
     await emailjs.send(
-      process.env.VITE_EMAILJS_SERVICE_ID,
-      process.env.VITE_EMAILJS_TEMPLATE_ID,
+      emailjsConfig.serviceId,
+      emailjsConfig.templateId,
       {
-        to_email: email,
+        email: email,
         otp_code: otp,
       }
     );
 
     return true;
   } catch (error) {
-    console.error('OTP Error:', error);
-    throw new Error('Failed to send OTP');
+    console.error('Failed to send OTP:', error);
+    throw new Error('Failed to send OTP. Please try again later.');
   }
 };
 
 export const verifyOTP = async (userId, userEnteredOtp) => {
+  if (!userId || !userEnteredOtp) {
+    throw new Error('User ID and OTP are required');
+  }
+
   try {
-    const otpRef = doc(db, 'otps', userId);
-    const otpSnap = await getDoc(otpRef);
+    const otpDocRef = doc(db, 'otps', userId);
+    const otpSnapshot = await getDoc(otpDocRef);
 
-    if (!otpSnap.exists()) {
-      throw new Error('OTP expired or not found');
+    if (!otpSnapshot.exists()) {
+      console.log('[DEBUG] OTP document does not exist');
+      throw new Error('OTP not found or expired');
     }
 
-    const otpData = otpSnap.data();
+    const otpData = otpSnapshot.data();
 
-    // Check if OTP is expired
+    console.log('[DEBUG] OTP fetched from Firestore:', otpData);
+    console.log('[DEBUG] OTP stored:', otpData.otp);
+    console.log('[DEBUG] OTP entered by user:', userEnteredOtp);
+    console.log('[DEBUG] OTP expiresAt:', otpData.expiresAt.toDate());
+    console.log('[DEBUG] Current time:', new Date());
+
     if (otpData.expiresAt.toDate() < new Date()) {
-      await deleteDoc(otpRef);
-      throw new Error('OTP expired');
+      await deleteDoc(otpDocRef);
+      throw new Error('OTP has expired');
     }
 
-    // Check attempt limit (optional security measure)
     if (otpData.attempts >= 3) {
-      await deleteDoc(otpRef);
-      throw new Error('Too many attempts');
+      await deleteDoc(otpDocRef);
+      throw new Error('Too many failed attempts');
     }
 
-    // Increment attempts
-    await setDoc(otpRef, { attempts: otpData.attempts + 1 }, { merge: true });
-
-    // Verify OTP
-    if (otpData.otp !== userEnteredOtp) {
+    if (otpData.otp !== userEnteredOtp.trim()) {
+      await setDoc(otpDocRef, { attempts: otpData.attempts + 1 }, { merge: true });
       throw new Error('Invalid OTP');
     }
 
-    // OTP is valid - delete it
-    await deleteDoc(otpRef);
+    // ✅ Success
+    await deleteDoc(otpDocRef);
     return true;
+
   } catch (error) {
-    console.error('OTP Verification Error:', error);
+    console.error('OTP verification failed:', error);
     throw error;
   }
 };
