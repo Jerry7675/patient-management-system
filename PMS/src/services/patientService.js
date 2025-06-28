@@ -17,7 +17,7 @@ export const fetchVerifiedRecordsByCurrentUser = async () => {
   if (!user) throw new Error('User not authenticated');
   const patientUid = user.uid;
 
-  console.log('[patientService] Fetching records for UID:', patientUid);
+ 
 
   const recordsRef = collection(db, 'patients_records', patientUid, 'records');
   const q = query(recordsRef, where('verified', '==', true));
@@ -28,7 +28,7 @@ export const fetchVerifiedRecordsByCurrentUser = async () => {
     records.push({ id: docSnap.id, ...docSnap.data() });
   });
 
-  console.log('[patientService] Records fetched:', records.length);
+ 
   return records;
 };
 

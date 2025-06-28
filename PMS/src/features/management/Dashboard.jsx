@@ -57,91 +57,128 @@ export default function ManagementDashboard() {
 
   return (
     <Layout>
-      <div className="p-6 max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-indigo-600">Management Dashboard</h1>
+      <div className="min-h-screen bg-gray-50 p-6">
+        {/* Main Container */}
+        <div className="max-w-6xl mx-auto">
+          {/* Header Section */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800 mb-1">Patient Records</h1>
+              <p className="text-gray-600">Manage and add patient medical records</p>
+            </div>
+            <div className="mt-4 md:mt-0">
+              <ProfileSidebar />
+            </div>
+          </div>
 
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">Add Patient Record</h2>
-          <ProfileSidebar />
-        </div>
+          {/* Dashboard Card */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            {/* Card Header */}
+            <div className="bg-blue-600 px-6 py-4">
+              <h2 className="text-xl font-semibold text-white">Add New Record</h2>
+            </div>
 
-        {/* Patient Search */}
-        <div className="mb-4">
-          <label className="block font-semibold mb-1">Search Patient (by name or email):</label>
-          <input
-            type="text"
-            className="w-full border border-gray-300 rounded px-3 py-2"
-            placeholder="Enter patient name or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          {searchTerm && filteredPatients.length > 0 && (
-            <ul className="border mt-2 max-h-40 overflow-y-auto bg-white shadow-md rounded">
-              {filteredPatients.map((p) => (
-                <li
-                  key={p.uid}
-                  onClick={() => handleSelectPatient(p)}
-                  className="px-3 py-2 cursor-pointer hover:bg-blue-100"
+            {/* Card Body */}
+            <div className="p-6 space-y-6">
+              {/* Patient Search Section */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Search Patient</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Search by name or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+
+                {searchTerm && filteredPatients.length > 0 && (
+                  <ul className="mt-2 border border-gray-200 rounded-lg divide-y divide-gray-200 max-h-60 overflow-y-auto">
+                    {filteredPatients.map((p) => (
+                      <li
+                        key={p.uid}
+                        onClick={() => handleSelectPatient(p)}
+                        className="px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors"
+                      >
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {p.profile?.name || 'Unnamed Patient'}
+                          </p>
+                          <p className="text-sm text-gray-500">{p.email}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {searchTerm && filteredPatients.length === 0 && (
+                  <div className="mt-2 p-3 bg-red-50 rounded-lg">
+                    <p className="text-sm text-red-600">No matching patient found</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Selected Patient Display */}
+              {selectedPatient && (
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                  <div>
+                    <h3 className="font-medium text-gray-900">
+                      {selectedPatient.profile?.name || 'Unnamed Patient'}
+                    </h3>
+                    <p className="text-sm text-blue-600">{selectedPatient.email}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Disease Selection */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Select Condition</label>
+                <select
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  onChange={(e) => setSelectedFormType(e.target.value)}
+                  value={selectedFormType}
                 >
-                  {p.profile?.name || 'Unnamed'} ({p.email})
-                </li>
-              ))}
-            </ul>
-          )}
-          {searchTerm && filteredPatients.length === 0 && (
-            <p className="text-sm text-red-600 mt-2">No matching patient found.</p>
-          )}
-        </div>
+                  <option value="">Select a medical condition...</option>
+                  <option value="fever">Fever</option>
+                  <option value="diabetes">Diabetes</option>
+                  <option value="cardiac">Cardiac</option>
+                  <option value="neurology">Neurology</option>
+                  <option value="allergies">Allergies</option>
+                  <option value="respiratory">Respiratory</option>
+                  <option value="hypertension">Hypertension</option>
+                  <option value="kidneyDisease">Kidney Disease</option>
+                </select>
+              </div>
 
-        {/* Selected Patient Info */}
-        {selectedPatient && (
-          <div className="mb-4 p-4 bg-gray-100 border rounded">
-            <p className="font-semibold">
-              Selected Patient: {selectedPatient.profile?.name || 'Unnamed'} ({selectedPatient.email})
-            </p>
+              {/* Disease Form */}
+              {selectedFormType && (
+                <div className="border-t border-gray-200 pt-6">
+                  <DiseaseFormSelector
+                    type={selectedFormType}
+                    onSubmit={handleFormSubmit}
+                    patient={selectedPatient}
+                  />
+                </div>
+              )}
+
+              {/* Status Message */}
+              {message && (
+                <div
+                  className={`p-4 rounded-lg ${
+                    message.includes('Failed')
+                      ? 'bg-red-50 text-red-700'
+                      : 'bg-green-50 text-green-700'
+                  }`}
+                >
+                  <div className="flex items-start">
+                    <span className="font-medium">{message}</span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-
-        {/* Disease Selection */}
-        <div className="mb-6">
-          <label className="block mb-1 font-semibold">Select Form Type:</label>
-          <select
-            className="w-full border border-gray-300 rounded px-3 py-2"
-            onChange={(e) => setSelectedFormType(e.target.value)}
-            value={selectedFormType}
-          >
-            <option value="">-- Choose Disease --</option>
-            <option value="fever">Fever</option>
-            <option value="diabetes">Diabetes</option>
-            <option value="cardiac">Cardiac</option>
-            <option value="neurology">Neurology</option>
-            <option value="allergies">Allergies</option>
-            <option value="respiratory">Respiratory</option>
-            <option value="hypertension">Hypertension</option>
-            <option value="kidneyDisease">Kidney Disease</option>
-          </select>
         </div>
-
-        {/* Disease Form */}
-        {selectedFormType && (
-          <DiseaseFormSelector
-            type={selectedFormType}
-            onSubmit={handleFormSubmit}
-            patient={selectedPatient}
-          />
-        )}
-
-        {/* Message - Moved to the end of the form */}
-        {message && (
-          <div className="mt-6 p-4 rounded text-center" 
-               style={{ 
-                 backgroundColor: message.includes('Failed') ? '#FEE2E2' : '#D1FAE5',
-                 color: message.includes('Failed') ? '#B91C1C' : '#065F46'
-               }}>
-            {message}
-          </div>
-        )}
-        
       </div>
     </Layout>
   );
