@@ -7,6 +7,7 @@ export default function Login() {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -22,7 +23,7 @@ export default function Login() {
     }
 
     try {
-      const { role, status } = await loginUser(form.email, form.password);
+      const { role, status, user } = await loginUser(form.email, form.password);
 
       if (status === 'pending') {
         navigate('/verification-pending');
@@ -34,12 +35,21 @@ export default function Login() {
         return;
       }
 
-      // ✅ Verified: Redirect based on role
-      if (role === 'patient') navigate('/patient/dashboard');
-      else if (role === 'doctor') navigate('/doctor/dashboard');
-      else if (role === 'management') navigate('/management/dashboard');
-      else if (role === 'admin') navigate('/admin/dashboard');
-      else navigate('/');
+      // For verified users, redirect to OTP verification
+      if (status === 'verified') {
+        navigate('/verify-otp', {
+          state: {
+            email: form.email,
+            uid: user.uid,
+            role,
+            from: location.pathname
+          }
+        });
+        return;
+      }
+
+      // Fallback for other statuses
+      navigate('/');
     } catch (err) {
       setError(err.message || 'Login failed');
     }

@@ -7,7 +7,7 @@ import { useAuthContext } from './context/AuthContext';
 import CompleteProfile from './features/auth/CompleteProfile';
 import Rejected from './components/Rejected';
 import PrivacyPolicy from './components/PrivacyPolicy';
-
+import OTPVerification from './features/auth/OTPVerification';
 
 import PatientDashboard from './features/patient/Dashboard';
 import DoctorDashboard from './features/doctor/Dashboard';
@@ -38,6 +38,7 @@ if (loading) return <Spinner />;
         <Route path="/complete-profile" element={<CompleteProfile />} />
         <Route path="/rejected" element={<Rejected />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/verify-otp" element={<OTPVerification />} />
         {/* Protected Routes */}
         <Route
           path="/patient/dashboard"
