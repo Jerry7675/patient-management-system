@@ -1,170 +1,315 @@
-// src/pages/DoctorDashboard.jsx
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect, Profiler } from 'react';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import {
-  getPendingRecords,
-  getVerifiedRecordsByPatient,
+  fetchUnverifiedRecordsForDoctor,
+  fetchRequestedCorrectionRecords,
+  fetchVerifiedRecordsByPatientSearch,
   verifyRecord,
-  editRecord,
+  updatePatientRecord,
 } from '../../services/doctorService';
-import { useAuthContext } from '../../context/AuthContext';
 import Layout from '../../components/Layout';
-import ProfileForm from '../../components/ProfileForm';
 import ProfileSidebar from '../../components/ProfileSidebar';
-
+ 
 export default function DoctorDashboard() {
-  const { profile, loading } = useAuthContext();
-  const [pendingRecords, setPendingRecords] = useState([]);
+  const [doctorUid, setDoctorUid] = useState(null);
   const [searchInput, setSearchInput] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [expandedId, setExpandedId] = useState(null);
-  const [editBuffer, setEditBuffer] = useState({});
-  const [verifying, setVerifying] = useState(false);
+  const [verifiedRecords, setVerifiedRecords] = useState([]);
+  const [unverifiedRecords, setUnverifiedRecords] = useState([]);
+  const [correctionRequests, setCorrectionRequests] = useState([]);
+  const [activeTab, setActiveTab] = useState('unverified');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [formData, setFormData] = useState({});
 
+  // Handle auth state
   useEffect(() => {
-    if (!loading && profile?.name && profile?.phone) {
-      fetchPendingRecords();
-    }
-  }, [loading, profile]);
+    const auth = getAuth();
+    return onAuthStateChanged(auth, (user) => {
+      setDoctorUid(user?.uid || null);
+    });
+  }, []);
 
-  const fetchPendingRecords = async () => {
-    const records = await getPendingRecords(profile);
-    setPendingRecords(records);
+  // Load records when tab or doctor changes
+  useEffect(() => {
+    if (!doctorUid) return;
+
+    const loadRecords = async () => {
+      setLoading(true);
+      setError('');
+      
+      try {
+        if (activeTab === 'unverified') {
+          const records = await fetchUnverifiedRecordsForDoctor(doctorUid);
+          setUnverifiedRecords(records);
+        } else if (activeTab === 'corrections') {
+          const requests = await fetchRequestedCorrectionRecords(doctorUid);
+          setCorrectionRequests(requests);
+        }
+      } catch (err) {
+        setError(`Failed to load ${activeTab} records`);
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadRecords();
+  }, [doctorUid, activeTab]);
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchInput.trim()) return;
+
+    setLoading(true);
+    setError('');
+    try {
+      const results = await fetchVerifiedRecordsByPatientSearch(searchInput.trim());
+      setVerifiedRecords(results);
+      setActiveTab('search');
+    } catch (err) {
+      setError('Search failed: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSearch = async () => {
-    if (!searchInput) return;
-    const results = await getVerifiedRecordsByPatient(searchInput.trim());
-    setSearchResults(results);
+  const startEditing = (record) => {
+    setEditingRecord(record.id);
+    // Create editable copy of record data, excluding metadata fields
+    const { id, patientUid, verified, requestedCorrection, ...editableFields } = record;
+    setFormData(editableFields);
   };
 
   const handleFieldChange = (field, value) => {
-    setEditBuffer(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  const handleVerify = async (patientUid, recordId) => {
-    const confirmed = confirm("Are you sure you want to verify this record?");
-    if (!confirmed) return;
+  const cancelEditing = () => {
+    setEditingRecord(null);
+    setFormData({});
+  };
 
+  const saveChanges = async (recordId, patientUid) => {
     try {
-      setVerifying(true);
-      if (Object.keys(editBuffer).length > 0) {
-        await editRecord(patientUid, recordId, editBuffer);
+      await updatePatientRecord(patientUid, recordId, formData);
+      setEditingRecord(null);
+      
+      // Refresh current view
+      if (activeTab === 'unverified') {
+        setUnverifiedRecords(await fetchUnverifiedRecordsForDoctor(doctorUid));
+      } else if (activeTab === 'corrections') {
+        setCorrectionRequests(await fetchRequestedCorrectionRecords(doctorUid));
+      } else if (activeTab === 'search') {
+        setVerifiedRecords(await fetchVerifiedRecordsByPatientSearch(searchInput));
       }
-      await verifyRecord(patientUid, recordId);
-      fetchPendingRecords(); // refresh
-      setExpandedId(null);
-      setEditBuffer({});
-    } catch (error) {
-      console.error('Verification failed:', error);
-    } finally {
-      setVerifying(false);
+    } catch (err) {
+      setError('Failed to update record: ' + err.message);
     }
   };
 
-  return (
-    <div className="p-6 space-y-6">
-      <Layout>
-      <h1 className="text-2xl font-bold mb-4">👨‍⚕️ Doctor Dashboard</h1>
-      <ProfileSidebar />
-      {/* Search Section */}
-      <div className="flex gap-3 items-center">
-        <input
-          type="text"
-          placeholder="Search patient by UID or email"
-          className="border p-2 rounded w-80"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-        />
-        <button
-          onClick={handleSearch}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-        >
-          🔍 Search
-        </button>
-      </div>
+  const handleVerify = async (recordId, patientUid) => {
+    if (!window.confirm('Verify this record?')) return;
+    
+    try {
+      await verifyRecord(recordId, patientUid);
+      // Refresh current view
+      if (activeTab === 'unverified') {
+        setUnverifiedRecords(await fetchUnverifiedRecordsForDoctor(doctorUid));
+      } else if (activeTab === 'corrections') {
+        setCorrectionRequests(await fetchRequestedCorrectionRecords(doctorUid));
+      }
+    } catch (err) {
+      setError('Verification failed');
+      console.error(err);
+    }
+  };
 
-      {/* Search Results */}
-      {searchResults.length > 0 && (
-        <div>
-          <h2 className="text-xl font-semibold mt-6 mb-2">Verified Records</h2>
-          <div className="space-y-4">
-            {searchResults.map((rec, idx) => (
-              <div key={rec.id} className="border p-4 rounded bg-green-50 shadow">
-                <p><b>#{idx + 1} | Patient:</b> {rec.patientName}</p>
-                <p><b>Disease:</b> {rec.disease}</p>
-                <p><b>Date:</b> {new Date(rec.date?.seconds * 1000).toLocaleString()}</p>
-                <p><b>Doctor:</b> {rec.doctorName}</p>
-              </div>
-            ))}
-          </div>
+  const renderField = (key, value, recordId) => {
+    if (!value || typeof value === 'object') return null;
+    
+    if (editingRecord === recordId) {
+      return (
+        <div key={key} className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 capitalize mb-1">
+            {key.replace(/([A-Z])/g, ' $1').trim()}
+          </label>
+          <input
+            type={typeof value === 'number' ? 'number' : 'text'}
+            value={formData[key] || ''}
+            onChange={(e) => handleFieldChange(key, e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+      );
+    }
+    
+    return (
+      <div key={key} className="mb-2">
+        <span className="font-semibold capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+        <span className="ml-2">
+          {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value.toString()}
+        </span>
+      </div>
+    );
+  };
+
+  const renderRecord = (record) => {
+    const { id, patientUid, verified, requestedCorrection, ...fields } = record;
+    
+    return (
+      <div key={`${patientUid}-${id}`} className="border rounded-lg p-6 mb-6 shadow-md bg-white">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Object.entries(fields).map(([key, value]) => renderField(key, value, id))}
+        </div>
+        
+        <div className="mt-4 flex justify-end space-x-3">
+          {editingRecord === id ? (
+            <>
+              <button
+                onClick={() => saveChanges(id, patientUid)}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+              >
+                Save Changes
+              </button>
+              <button
+                onClick={cancelEditing}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => startEditing(record)}
+                className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition"
+              >
+                Edit Record
+              </button>
+              {(activeTab === 'unverified' || activeTab === 'corrections') && (
+                <button
+                  onClick={() => handleVerify(id, patientUid)}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+                >
+                  Verify Record
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto p-6">
+      <Layout>
+        <div className="flex items-center justify-between mb-6">
+      <h1 className="text-3xl font-bold mb-8 text-gray-800">Doctor Dashboard</h1>
+      <ProfileSidebar doctorUid={doctorUid} />
+      </div>
+      {/* Search Bar */}
+      <form onSubmit={handleSearch} className="mb-8">
+        <div className="flex">
+          <input
+            type="text"
+            placeholder="Search verified records by patient name or email"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            type="submit"
+            className="px-6 py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 transition"
+          >
+            Search
+          </button>
+        </div>
+      </form>
+      
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg">
+          {error}
         </div>
       )}
 
-      {/* Pending Records */}
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-2">🕒 Pending Records ({pendingRecords.length})</h2>
-        {pendingRecords.length === 0 ? (
-          <p className="text-gray-500">No pending records.</p>
-        ) : (
-          <div className="space-y-4">
-            {pendingRecords.map((rec, idx) => (
-              <div key={rec.id} className="border p-4 rounded bg-yellow-50 shadow">
-                <div className="flex justify-between items-center">
-                  <p><b>#{idx + 1} | Patient:</b> {rec.patientName}</p>
-                  <button
-                    className="text-blue-600 underline"
-                    onClick={() => setExpandedId(expandedId === rec.id ? null : rec.id)}
-                  >
-                    {expandedId === rec.id ? 'Collapse' : 'Expand'}
-                  </button>
-                </div>
-
-                {expandedId === rec.id && (
-                  <div className="mt-4 space-y-2">
-                    {Object.entries(rec).map(([key, value]) => {
-                      if (
-                        ['id', 'patientUid', 'verified', 'date', 'managementEntered'].includes(key)
-                      ) return null;
-
-                      return (
-                        <div key={key} className="flex flex-col">
-                          <label className="capitalize font-medium">{key}</label>
-                          <textarea
-                            rows={key === 'imagingReports' || key === 'examFindings' ? 3 : 2}
-                            defaultValue={
-                              Array.isArray(value)
-                                ? JSON.stringify(value, null, 2)
-                                : value
-                            }
-                            onChange={(e) => handleFieldChange(key, e.target.value)}
-                            className="border p-2 rounded bg-white"
-                          />
-                        </div>
-                      );
-                    })}
-
-                    <div className="flex gap-3 mt-4">
-                      <button
-                        onClick={() => handleVerify(rec.patientUid, rec.id)}
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded disabled:opacity-50"
-                        disabled={verifying}
-                      >
-                        ✅ {verifying ? 'Verifying...' : 'Verify'}
-                      </button>
-                      <button
-                        onClick={() => setExpandedId(null)}
-                        className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+      {/* Tabs */}
+      <div className="flex space-x-4 mb-8">
+        <button
+          onClick={() => setActiveTab('unverified')}
+          className={`px-6 py-2 rounded-lg transition ${
+            activeTab === 'unverified'
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-200 hover:bg-gray-300'
+          }`}
+        >
+          Unverified Records
+        </button>
+        <button
+          onClick={() => setActiveTab('corrections')}
+          className={`px-6 py-2 rounded-lg transition ${
+            activeTab === 'corrections'
+              ? 'bg-red-600 text-white'
+              : 'bg-gray-200 hover:bg-gray-300'
+          }`}
+        >
+          Correction Requests
+        </button>
       </div>
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex justify-center items-center h-32">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      )}
+
+      {/* Records Display */}
+      {!loading && (
+        <div>
+          {activeTab === 'search' ? (
+            <>
+              <h2 className="text-2xl font-semibold mb-6 text-gray-700">
+                Search Results for "{searchInput}"
+              </h2>
+              {verifiedRecords.length > 0 ? (
+                verifiedRecords.map(renderRecord)
+              ) : (
+                <div className="p-6 bg-gray-50 rounded-lg text-center text-gray-500">
+                  No verified records found for "{searchInput}"
+                </div>
+              )}
+            </>
+          ) : activeTab === 'unverified' ? (
+            <>
+              <h2 className="text-2xl font-semibold mb-6 text-gray-700">Unverified Records</h2>
+              {unverifiedRecords.length > 0 ? (
+                unverifiedRecords.map(renderRecord)
+              ) : (
+                <div className="p-6 bg-gray-50 rounded-lg text-center text-gray-500">
+                  No unverified records found
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-semibold mb-6 text-gray-700">Correction Requests</h2>
+              {correctionRequests.length > 0 ? (
+                correctionRequests.map(renderRecord)
+              ) : (
+                <div className="p-6 bg-gray-50 rounded-lg text-center text-gray-500">
+                  No correction requests found
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
       </Layout>
     </div>
   );

@@ -38,7 +38,7 @@ export default function ManagementDashboard() {
 
   const handleSelectPatient = (patient) => {
     setSelectedPatient(patient);
-    setSearchTerm(patient.profile?.name || patient.email); // Update search box with selected name/email
+    setSearchTerm(patient.profile?.name || patient.email);
   };
 
   const handleFormSubmit = async (formData) => {
@@ -122,9 +122,6 @@ export default function ManagementDashboard() {
           </select>
         </div>
 
-        {/* Message */}
-        {message && <p className="text-center text-green-600 mb-4">{message}</p>}
-
         {/* Disease Form */}
         {selectedFormType && (
           <DiseaseFormSelector
@@ -133,6 +130,18 @@ export default function ManagementDashboard() {
             patient={selectedPatient}
           />
         )}
+
+        {/* Message - Moved to the end of the form */}
+        {message && (
+          <div className="mt-6 p-4 rounded text-center" 
+               style={{ 
+                 backgroundColor: message.includes('Failed') ? '#FEE2E2' : '#D1FAE5',
+                 color: message.includes('Failed') ? '#B91C1C' : '#065F46'
+               }}>
+            {message}
+          </div>
+        )}
+        
       </div>
     </Layout>
   );
