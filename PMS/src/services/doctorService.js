@@ -91,7 +91,8 @@ export const fetchUnverifiedRecordsForDoctor = async (doctorUid) => {
         recordsRef,
         where('verified', '==', false),
         where('doctorName', '==', doctor.name),
-        where('doctorPhone', '==', doctor.phone)
+        where('doctorPhone', '==', doctor.phone),
+        where('requestedCorrection', '==', false)
       );
       
       const snapshot = await getDocs(q);

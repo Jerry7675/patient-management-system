@@ -36,6 +36,7 @@ export const addPatientRecord = async (patientUid, record) => {
     ...record, // Include all form fields dynamically
     date: serverTimestamp(),
     verified: false,
+    requestedCorrection: false,
     managementEntered: true,
   };
 
