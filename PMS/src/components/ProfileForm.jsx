@@ -1,10 +1,14 @@
-// src/components/ProfileForm.jsx
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getUserProfile, updateUserProfile } from '../firebase/firestore';
 import { useAuthContext } from '../context/AuthContext';
 
-export default function ProfileForm() {
+export default function ProfileForm({ userUid: externalUid, redirectAfterSave = false }) {
   const { user } = useAuthContext();
+  const navigate = useNavigate();
+
+  const effectiveUid = user?.uid || externalUid;
+
   const [form, setForm] = useState({
     name: '',
     dob: '',
@@ -12,43 +16,71 @@ export default function ProfileForm() {
     address: '',
     citizenshipNo: '',
   });
-  const [loading, setLoading] = useState(false);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-useEffect(() => {
-  const fetchProfile = async () => {
-    if (!user) return;
-    const profile = await getUserProfile(user.uid);
-    if (profile) {
-      setForm({
-        name: profile.name || '',
-        dob: profile.dob || '',
-        phone: profile.phone || '',
-        address: profile.address || '',
-        citizenshipNo: profile.citizenshipNo || '',
-      });
-    }
-  };
-  fetchProfile();
-}, [user]);
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!effectiveUid) {
+        setLoading(false);
+        return;
+      }
 
-const handleChange = (e) => {
-  setForm({ ...form, [e.target.name]: e.target.value });
-};
+      const profile = await getUserProfile(effectiveUid);
+      if (profile) {
+        setForm({
+          name: profile.name || '',
+          dob: profile.dob || '',
+          phone: profile.phone || '',
+          address: profile.address || '',
+          citizenshipNo: profile.citizenshipNo || '',
+        });
+      }
+      setLoading(false);
+    };
+
+    fetchProfile();
+  }, [effectiveUid]);
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+
+    if (!effectiveUid) {
+      setMessage('❌ No user ID available. Cannot save profile.');
+      return;
+    }
+
+    setSaving(true);
     try {
-      await updateUserProfile(user.uid, form);
+      await updateUserProfile(effectiveUid, form);
       setMessage('✅ Profile updated successfully!');
-     
+
+      if (redirectAfterSave) {
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      }
     } catch (err) {
+      console.error(err);
       setMessage('❌ Failed to update profile.');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="text-center py-10 text-indigo-600 font-medium">
+        Loading profile...
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-6 rounded shadow-md w-full max-w-xl mx-auto">
@@ -109,10 +141,10 @@ const handleChange = (e) => {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={saving}
           className="bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition"
         >
-          {loading ? 'Saving...' : 'Save Profile'}
+          {saving ? 'Saving...' : 'Save Profile'}
         </button>
       </form>
     </div>

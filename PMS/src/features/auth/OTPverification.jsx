@@ -23,16 +23,25 @@ export default function OTPVerification() {
     }
   }, [email, userId, role, navigate]);
 
-  useEffect(() => {
-    if (email && userId && !otpSent) {
+useEffect(() => {
+  if (email && userId) {
+    const key = `otp_sent_${userId}`;
+    const hasSent = sessionStorage.getItem(key);
+
+    if (!hasSent) {
       sendOTP(email, userId)
         .then(() => {
+          sessionStorage.setItem(key, 'true');
           setError('');
           setOtpSent(true);
         })
         .catch(() => setError('Failed to send OTP. Please try again.'));
+    } else {
+      setOtpSent(true); // allow verify even if OTP already sent before
     }
-  }, [email, userId, otpSent]);
+  }
+}, [email, userId]);
+
 
   useEffect(() => {
     const interval = setInterval(() => {
