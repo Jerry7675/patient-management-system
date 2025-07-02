@@ -15,7 +15,7 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md py-4 px-6 flex justify-between items-center sm:flex-col sm:items-start sm:gap-4">
+    <header className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md py-4 px-6 flex justify-between items-center md:flex-row flex-col">
       <div className="flex items-center gap-4">
         <img src={logo} alt="PMS Logo" className="h-12 w-15" />
         <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-blue-700">Patient Management System</h1>
