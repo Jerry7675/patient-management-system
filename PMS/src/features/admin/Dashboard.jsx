@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import { getAllUsers, verifyUser, rejectUser } from '../../services/adminService';
 import { getUserProfile } from '../../firebase/firestore';
 import Layout from '../../components/Layout';
@@ -144,8 +144,8 @@ function UserTable({ title, users, onVerify, onReject, onProfileClick, activePro
               </tr>
             ) : (
               users.map(({ uid, email, role, status }) => (
-                <>
-                  <tr key={uid} className="hover:bg-indigo-50">
+                <Fragment key={uid}>
+                  <tr className="hover:bg-indigo-50">
                     <td className="border px-4 py-2">{email}</td>
                     <td className="border px-4 py-2 capitalize">{role}</td>
                     <td className="border px-4 py-2 text-center capitalize">{status}</td>
@@ -177,7 +177,7 @@ function UserTable({ title, users, onVerify, onReject, onProfileClick, activePro
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))
             )}
           </tbody>

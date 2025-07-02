@@ -23,10 +23,9 @@ export const sendOTP = async (email, userId) => {
 
   try {
     // Create document reference - IMPORTANT: Use doc() with db
-    console.log("Is db valid Firestore?", db); 
-    console.log("userId", userId);   
+     
     const otpDocRef = doc(db, 'otps', userId);
-    console.log('saving otp to firestore:', otpDocRef.path);
+    
     await setDoc(otpDocRef, {
       otp,
       email,
@@ -34,7 +33,7 @@ export const sendOTP = async (email, userId) => {
       attempts: 0,
       createdAt: Timestamp.now()
     });
-     console.log('OTP saved to firebase:');
+     
     // Send email
     await emailjs.send(
       emailjsConfig.serviceId,
@@ -62,17 +61,13 @@ export const verifyOTP = async (userId, userEnteredOtp) => {
     const otpSnapshot = await getDoc(otpDocRef);
 
     if (!otpSnapshot.exists()) {
-      console.log('[DEBUG] OTP document does not exist');
+     
       throw new Error('OTP not found or expired');
     }
 
     const otpData = otpSnapshot.data();
 
-    console.log('[DEBUG] OTP fetched from Firestore:', otpData);
-    console.log('[DEBUG] OTP stored:', otpData.otp);
-    console.log('[DEBUG] OTP entered by user:', userEnteredOtp);
-    console.log('[DEBUG] OTP expiresAt:', otpData.expiresAt.toDate());
-    console.log('[DEBUG] Current time:', new Date());
+   
 
     if (otpData.expiresAt.toDate() < new Date()) {
       await deleteDoc(otpDocRef);
