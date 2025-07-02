@@ -1,5 +1,5 @@
 // src/features/auth/OTPVerification.jsx
-
+//fixed
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { verifyOTP, sendOTP } from '../../services/otpService';
