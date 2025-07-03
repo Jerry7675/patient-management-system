@@ -15,7 +15,7 @@ export const loginUser = async (email, password) => {
   const role = await getUserRole(user.uid);
   const status = await getUserStatus(user.uid);
 
-  // DO NOT logout or send OTP here
+  
   return { user, role, status };
 };
 

@@ -1,5 +1,5 @@
 import emailjs from '@emailjs/browser';
-import { db } from '../firebase/config'; // Make sure this import is correct
+import { db } from '../firebase/config'; 
 import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
 

@@ -1,4 +1,4 @@
-// src/services/adminService.js
+
 import db from '../firebase/firestore';
 import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 

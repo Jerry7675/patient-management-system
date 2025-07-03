@@ -1,4 +1,4 @@
-// src/services/managementService.js
+
 import db from '../firebase/firestore';
 import {
   collection,
@@ -11,7 +11,7 @@ import {
   where
 } from 'firebase/firestore';
 
-// ✅ Get all patients for management to select from
+//  Get all patients for management to select from
 export const getAllPatients = async () => {
   const usersCol = collection(db, 'users');
   const q = query(usersCol, where('role', '==', 'patient'));
@@ -24,11 +24,11 @@ export const getAllPatients = async () => {
   return patients;
 };
 
-// ✅ Add patient record, with doctor verification pending (default verified: false)
+//  Add patient record, with doctor verification pending (default verified: false)
 export const addPatientRecord = async (patientUid, record) => {
   const patientRecordsCollection = collection(db, 'patients_records', patientUid, 'records');
 
-  // 🛠 Ensure the parent document exists
+  //  Ensure the parent document exists
   const patientDocRef = doc(db, 'patients_records', patientUid);
   await setDoc(patientDocRef, { createdAt: serverTimestamp() }, { merge: true });
 

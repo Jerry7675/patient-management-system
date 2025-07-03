@@ -1,4 +1,4 @@
-// src/features/auth/ForgotPassword.jsx
+
 import { useState } from 'react';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import auth from '../../firebase/auth';

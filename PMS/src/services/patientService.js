@@ -1,4 +1,4 @@
-// src/services/patientService.js
+
 import {
   collection,
   getDocs,
@@ -10,7 +10,7 @@ import {
 import { getAuth } from 'firebase/auth';
 import db from '../firebase/firestore';
 
-// ✅ Fetch verified records for the current authenticated user
+//  Fetch verified records for the current authenticated user
 export const fetchVerifiedRecordsByCurrentUser = async () => {
   const auth = getAuth();
   const user = auth.currentUser;
@@ -32,7 +32,7 @@ export const fetchVerifiedRecordsByCurrentUser = async () => {
   return records;
 };
 
-// ✅ Request correction on a specific record for the current authenticated user
+//  Request correction on a specific record for the current authenticated user
 export const requestRecordCorrection = async (recordId) => {
   const auth = getAuth();
   const user = auth.currentUser;

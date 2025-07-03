@@ -10,7 +10,7 @@ import app from './config';
 
 const db = getFirestore(app);
 
-// Save role on registration — use 'status' instead of boolean verified
+// Save role on registration 
 export const saveUserRole = async (uid, email, role, profile = {}) => {
   await setDoc(doc(db, 'users', uid), {
     email,
@@ -28,14 +28,14 @@ export const getUserRole = async (uid) => {
   return snap.exists() ? snap.data().role : null;
 };
 
-// ✅ Get user status ('pending', 'verified', or 'rejected')
+//  Get user status ('pending', 'verified', or 'rejected')
 export const getUserStatus = async (uid) => {
   const docRef = doc(db, 'users', uid);
   const snap = await getDoc(docRef);
   return snap.exists() ? snap.data().status || 'pending' : 'pending';
 };
 
-// ✅ Get user profile
+//  Get user profile
 export const getUserProfile = async (uid) => {
   const docRef = doc(db, 'users', uid);
   const snap = await getDoc(docRef);

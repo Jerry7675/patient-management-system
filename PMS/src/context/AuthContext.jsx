@@ -1,14 +1,14 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import auth from '../firebase/auth';
-import { getUserRole, getUserProfile } from '../firebase/firestore'; // Make sure this function exists
+import { getUserRole, getUserProfile } from '../firebase/firestore'; 
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
-  const [profile, setProfile] = useState(null); // <-- NEW: for doctor name, phone, etc.
+  const [profile, setProfile] = useState(null); 
   const [loading, setLoading] = useState(true);
 
 useEffect(() => {
@@ -16,7 +16,7 @@ useEffect(() => {
     if (firebaseUser) {
       const fetchedRole = await getUserRole(firebaseUser.uid);
       const fetchedProfile = await getUserProfile(firebaseUser.uid); // <- fetch profile
-      setUser({ ...firebaseUser, profile: fetchedProfile }); // <- attach profile here
+      setUser({ ...firebaseUser, profile: fetchedProfile }); // <- attach profile
       setRole(fetchedRole);
       setProfile(fetchedProfile); 
     } else {

@@ -7,14 +7,14 @@ export default function CompleteProfile() {
   const { user } = useAuthContext();
   const navigate = useNavigate();
 
-  // Redirect to login if no user (shouldn't happen if route protected)
+  // Redirect to login if no user
   useEffect(() => {
     if (!user) {
       navigate('/');
     }
   }, [user, navigate]);
 
-  // You can add a callback in ProfileForm to redirect after save
+ 
   const handleProfileSaved = () => {
     if (!user) return;
     switch (user.role) {

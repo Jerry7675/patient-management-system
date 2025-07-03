@@ -1,4 +1,4 @@
-// src/features/auth/OTPVerification.jsx
+
 //fixed
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -57,8 +57,8 @@ useEffect(() => {
   const handleVerify = async () => {
     try {
       setLoading(true);
-      await verifyOTP(userId, otp); // ✅ Only call verifyOTP here
-      await verifyUserWithOTP(userId); // ✅ No need to pass OTP again
+      await verifyOTP(userId, otp);
+      await verifyUserWithOTP(userId); //  No need to pass OTP again
 
       // Redirect based on role
       switch (role) {
