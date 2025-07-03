@@ -39,6 +39,7 @@ if (loading) return <Spinner />;
         <Route path="/rejected" element={<Rejected />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/verify-otp" element={<OTPVerification />} />
+        <Route path="*" element={<Unauthorized />} />
         {/* Protected Routes */}
         <Route
           path="/patient/dashboard"

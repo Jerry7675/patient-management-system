@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { registerUser } from '../../services/authService';
 import { useNavigate, Link } from 'react-router-dom';
-import ProfileForm from '../../components/ProfileForm'; // adjust path if needed
+import ProfileForm from '../../components/ProfileForm';
 
 export default function Register() {
   const [form, setForm] = useState({

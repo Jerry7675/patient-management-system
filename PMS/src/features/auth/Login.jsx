@@ -41,7 +41,7 @@ export default function Login() {
         navigate('/verify-otp', {
           state: {
             email: form.email,
-            userId: user.uid, // make sure this key matches OTPVerification.jsx
+            userId: user.uid,
             role,
             from: location.pathname
           }
@@ -51,7 +51,7 @@ export default function Login() {
 
       navigate('/');
     } catch (err) {
-      setError(err.message || 'Login failed');
+    setError('❌ Invalid email or password. Please try again.');
     }
   };
 
