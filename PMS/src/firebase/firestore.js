@@ -42,7 +42,7 @@ export const getUserProfile = async (uid) => {
   return snap.exists() ? snap.data().profile || null : null;
 };
 
-// ✅ Update user profile after registration or from dashboard
+//  Update user profile after registration or from dashboard
 export const updateUserProfile = async (uid, profile) => {
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, { profile });
